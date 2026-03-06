@@ -1,5 +1,9 @@
 # Avoid Nodes Edge Routing — React Flow + libavoid-js
 
+> **This routing logic is published as an npm package: [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge)**
+>
+> **[Live Demo](https://avoid-nodes-pro-example.vercel.app)**
+
 Orthogonal edge routing that avoids overlapping nodes, powered by **libavoid-js** (WASM) with **Web Worker** support for smooth, non-blocking UI.
 
 Built with [React Flow v12](https://reactflow.dev/) and [libavoid-js](https://github.com/nicktf/libavoid-js) (Emscripten port of [Adaptagrams libavoid](https://github.com/mjwybrow/adaptagrams)).

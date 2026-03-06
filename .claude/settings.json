@@ -14,7 +14,8 @@
       "Bash(npx vercel login)",
       "Bash(npx vercel link --scope awaisshah228s-projects)",
       "Bash(npx vercel link --scope awaisshah228s-projects --yes)",
-      "Bash(npx vercel --prod --scope awaisshah228s-projects --yes)"
+      "Bash(npx vercel --prod --scope awaisshah228s-projects --yes)",
+      "Bash(git stash)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
