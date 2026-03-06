@@ -37,6 +37,7 @@ function Flow() {
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, {
     edgeToNodeSpacing: 16,
     edgeToEdgeSpacing: 10,
+    edgeRounding: 8,
   });
 
   const onNodesChange = useCallback(

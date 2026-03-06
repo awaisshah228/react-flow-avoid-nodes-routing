@@ -151,7 +151,7 @@ export class AvoidRouter {
       right: PIN_RIGHT,
     };
 
-    // ConnDir flags from Adaptagrams: Up=1, Down=2, Left=4, Right=8, All=15
+    // ConnDir flags: Up=1, Down=2, Left=4, Right=8, All=15
     const CONN_DIR_UP = 1;
     const CONN_DIR_DOWN = 2;
     const CONN_DIR_LEFT = 4;
@@ -190,31 +190,31 @@ export class AvoidRouter {
       const tgt = nodeById.get(edge.target);
       if (!src || !tgt) continue;
 
-      const srcShapeRef = shapeRefMap.get(edge.source);
-      const tgtShapeRef = shapeRefMap.get(edge.target);
-
       const sourcePos = this.getHandlePosition(src, "source");
       const targetPos = this.getHandlePosition(tgt, "target");
 
       let srcEnd: unknown;
       let tgtEnd: unknown;
 
+      // Use pin-based ConnEnd for flush connection to the shape boundary.
+      const srcShapeRef = shapeRefMap.get(edge.source);
       if (srcShapeRef) {
         const pinId = pinIdForPosition[sourcePos] ?? PIN_CENTER;
         srcEnd = new Avoid.ConnEnd(srcShapeRef, pinId);
       } else {
         const sb = this.getNodeBoundsAbsolute(src, nodeById);
-        const sourcePt = this.getHandlePoint(sb, sourcePos);
-        srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+        const pt = this.getHandlePointOutset(sb, sourcePos, 0);
+        srcEnd = new Avoid.ConnEnd(new Avoid.Point(pt.x, pt.y));
       }
 
+      const tgtShapeRef = shapeRefMap.get(edge.target);
       if (tgtShapeRef) {
         const pinId = pinIdForPosition[targetPos] ?? PIN_CENTER;
         tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinId);
       } else {
         const tb = this.getNodeBoundsAbsolute(tgt, nodeById);
-        const targetPt = this.getHandlePoint(tb, targetPos);
-        tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
+        const pt = this.getHandlePointOutset(tb, targetPos, 0);
+        tgtEnd = new Avoid.ConnEnd(new Avoid.Point(pt.x, pt.y));
       }
 
       const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
@@ -286,19 +286,20 @@ export class AvoidRouter {
     return kind === "source" ? "right" : "left";
   }
 
-  private getHandlePoint(
+  private getHandlePointOutset(
     bounds: { x: number; y: number; w: number; h: number },
-    position: HandlePosition
+    position: HandlePosition,
+    outset: number
   ): { x: number; y: number } {
     const { x, y, w, h } = bounds;
     const cx = x + w / 2;
     const cy = y + h / 2;
     switch (position) {
-      case "left": return { x, y: cy };
-      case "right": return { x: x + w, y: cy };
-      case "top": return { x: cx, y };
-      case "bottom": return { x: cx, y: y + h };
-      default: return { x: x + w, y: cy };
+      case "left": return { x: x - outset, y: cy };
+      case "right": return { x: x + w + outset, y: cy };
+      case "top": return { x: cx, y: y - outset };
+      case "bottom": return { x: cx, y: y + h + outset };
+      default: return { x: x + w + outset, y: cy };
     }
   }
 
