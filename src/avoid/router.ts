@@ -225,7 +225,7 @@ export class AvoidRouter {
     try {
       router.processTransaction();
     } catch {
-      this.cleanup(router);
+      this.cleanup(router, connRefs, shapeRefs);
       return {};
     }
 
@@ -248,7 +248,7 @@ export class AvoidRouter {
       }
     }
 
-    this.cleanup(router);
+    this.cleanup(router, connRefs, shapeRefs);
     return result;
   }
 
@@ -354,9 +354,14 @@ export class AvoidRouter {
     return d;
   }
 
-  private cleanup(router: { delete: () => void }): void {
+  private cleanup(
+    router: { deleteConnector: (c: unknown) => void; deleteShape: (s: unknown) => void; delete: () => void },
+    connRefs: { connRef: unknown }[],
+    shapeRefs: { ref: unknown }[]
+  ): void {
     try {
-      router.delete();
+      for (const { connRef } of connRefs) router.deleteConnector(connRef);
+      for (const { ref } of shapeRefs) router.deleteShape(ref);
     } catch {
       // ignore
     }

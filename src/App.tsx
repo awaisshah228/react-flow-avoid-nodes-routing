@@ -50,15 +50,20 @@ function Flow() {
   const onEdgesChange = useCallback(
     (changes: EdgeChange<Edge>[]) => {
       setEdges((eds) => applyEdgeChanges(changes, eds));
+      // Re-route when edges are added/removed
+      const needsReset = changes.some((c) => c.type === "add" || c.type === "remove");
+      if (needsReset) resetRouting();
     },
-    []
+    [resetRouting]
   );
 
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => addEdge({ ...params, type: "avoidNodes" }, eds));
+      // Trigger re-route so the new edge avoids nodes
+      resetRouting();
     },
-    []
+    [resetRouting]
   );
 
   // Resolve node-on-node collisions after drag ends
