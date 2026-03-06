@@ -138,6 +138,16 @@ export class AvoidRouter {
     router.setRoutingOption(Avoid.RoutingOption.nudgeSharedPathsWithCommonEndPoint.value, true);
     router.setRoutingOption(Avoid.RoutingOption.performUnifyingNudgingPreprocessingStep.value, true);
 
+    // Penalise routes that go against the pin's preferred direction —
+    // this forces edges to route cleanly away from their own node before turning.
+    if (Avoid.RoutingParameter.portDirectionPenalty) {
+      router.setRoutingParameter(Avoid.RoutingParameter.portDirectionPenalty.value, 100);
+    }
+    // Penalise routes that reverse direction (U-turns near nodes)
+    if (Avoid.RoutingParameter.reverseDirectionPenalty) {
+      router.setRoutingParameter(Avoid.RoutingParameter.reverseDirectionPenalty.value, 50);
+    }
+
     const PIN_CENTER = 1;
     const PIN_TOP = 2;
     const PIN_BOTTOM = 3;
@@ -179,7 +189,9 @@ export class AvoidRouter {
 
       for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
         const p = pinProportions[pinId];
-        const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
+        // insideOffset pushes the pin outward from the shape boundary so edges
+        // don't hug/overlap the connected node's border
+        const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, shapeBuffer, p.dir);
         pin.setExclusive(false);
       }
     }
