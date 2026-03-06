@@ -1,5 +1,7 @@
 # avoid-nodes-edge
 
+**[Live Demo](https://avoid-nodes-pro-example.vercel.app)**
+
 Orthogonal edge routing for [React Flow](https://reactflow.dev/) — edges automatically route around nodes using [libavoid-js](https://github.com/nicknisi/libavoid-js) (WASM). All WASM and routing computation runs exclusively in a **Web Worker**, keeping the main thread free and your UI smooth.
 
 ## Features
