@@ -6,7 +6,7 @@ export const DEV_LOG_WEB_WORKER_MESSAGES = false;
  * 10 ms merges drag events into a single update.
  * For larger diagrams (500+ nodes) use ~50-100 ms.
  */
-export const DEBOUNCE_ROUTING_MS = 10;
+export const DEBOUNCE_ROUTING_MS = 0;
 
 /** Whether edges start at handle border (true) or center (false). */
 export const SHOULD_START_EDGE_AT_HANDLE_BORDER = true;
