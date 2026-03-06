@@ -35,7 +35,7 @@ function Flow() {
 
   // Worker-based routing: edges route around nodes on a separate thread
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, {
-    edgeToNodeSpacing: 16,
+    edgeToNodeSpacing: 12,
     edgeToEdgeSpacing: 10,
     edgeRounding: 8,
   });

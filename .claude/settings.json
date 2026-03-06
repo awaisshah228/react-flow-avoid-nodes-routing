@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/src/**)",
+      "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/**)",
+      "Bash(grep -E '\\\\.\\(tsx|ts\\)$')"
+    ]
+  }
+}
