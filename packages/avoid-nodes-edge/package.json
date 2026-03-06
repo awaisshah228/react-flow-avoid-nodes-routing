@@ -1,5 +1,5 @@
 {
-  "name": "@xyflow/avoid-nodes-edge",
+  "name": "avoid-nodes-edge",
   "version": "0.1.0",
   "description": "Orthogonal edge routing for React Flow — edges avoid overlapping nodes via libavoid-js WASM running in a Web Worker.",
   "type": "module",
@@ -25,7 +25,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "@xyflow/react": ">=12.0.0",

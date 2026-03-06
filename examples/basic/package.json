@@ -10,7 +10,7 @@
     "postinstall": "node scripts/copy-libavoid-wasm.cjs"
   },
   "dependencies": {
-    "@xyflow/avoid-nodes-edge": "*",
+    "avoid-nodes-edge": "*",
     "@xyflow/react": "^12.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -1,4 +1,4 @@
-# @xyflow/avoid-nodes-edge
+# avoid-nodes-edge
 
 Orthogonal edge routing for [React Flow](https://reactflow.dev/) — edges automatically route around nodes using [libavoid-js](https://github.com/nicknisi/libavoid-js) (WASM). All WASM and routing computation runs exclusively in a **Web Worker**, keeping the main thread free and your UI smooth.
 
@@ -16,15 +16,15 @@ Orthogonal edge routing for [React Flow](https://reactflow.dev/) — edges autom
 ## Install
 
 ```bash
-npm install @xyflow/avoid-nodes-edge
+npm install avoid-nodes-edge
 ```
 
 ```bash
-yarn add @xyflow/avoid-nodes-edge
+yarn add avoid-nodes-edge
 ```
 
 ```bash
-pnpm add @xyflow/avoid-nodes-edge
+pnpm add avoid-nodes-edge
 ```
 
 ### Peer Dependencies
@@ -46,15 +46,47 @@ The routing engine uses a WebAssembly binary from `libavoid-js`. Copy it to your
 cp node_modules/libavoid-js/dist/libavoid.wasm public/libavoid.wasm
 ```
 
-Or automate it with a postinstall script:
+Or automate it with a postinstall script in your `package.json`:
 
 ```json
 {
   "scripts": {
-    "postinstall": "cp node_modules/libavoid-js/dist/libavoid.wasm public/libavoid.wasm"
+    "postinstall": "node scripts/copy-libavoid-wasm.cjs"
   }
 }
 ```
+
+Create `scripts/copy-libavoid-wasm.cjs`:
+
+```js
+#!/usr/bin/env node
+const fs = require("fs");
+const path = require("path");
+
+// Search both local and hoisted (monorepo) node_modules
+const candidates = [
+  path.join(__dirname, "..", "node_modules", "libavoid-js", "dist", "libavoid.wasm"),
+  path.join(__dirname, "..", "..", "..", "node_modules", "libavoid-js", "dist", "libavoid.wasm"),
+];
+
+const src = candidates.find((p) => fs.existsSync(p));
+const dest = path.join(__dirname, "..", "public", "libavoid.wasm");
+
+if (!src) {
+  console.warn("[copy-libavoid-wasm] libavoid.wasm not found — run npm install first");
+  process.exit(0);
+}
+
+const publicDir = path.dirname(dest);
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
+
+fs.copyFileSync(src, dest);
+console.log("[copy-libavoid-wasm] Copied libavoid.wasm to public/");
+```
+
+This script handles both flat and hoisted `node_modules` layouts (npm workspaces, monorepos).
 
 ### 2. Configure your bundler
 
@@ -71,7 +103,7 @@ export default defineConfig({
     format: 'es',
   },
   optimizeDeps: {
-    exclude: ['@xyflow/avoid-nodes-edge'],
+    exclude: ['avoid-nodes-edge'],
   },
 });
 ```
@@ -98,8 +130,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { AvoidNodesEdge } from '@xyflow/avoid-nodes-edge/edge';
-import { useAvoidNodesRouterFromWorker } from '@xyflow/avoid-nodes-edge';
+import { AvoidNodesEdge } from 'avoid-nodes-edge/edge';
+import { useAvoidNodesRouterFromWorker } from 'avoid-nodes-edge';
 
 // Register the custom edge type
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
@@ -183,7 +215,7 @@ export default function App() {
 The main hook. Manages the Web Worker lifecycle and routes edges around nodes.
 
 ```ts
-import { useAvoidNodesRouterFromWorker } from '@xyflow/avoid-nodes-edge';
+import { useAvoidNodesRouterFromWorker } from 'avoid-nodes-edge';
 
 const { updateRoutingOnNodesChange, resetRouting, refreshRouting, updateRoutingForNodeIds } =
   useAvoidNodesRouterFromWorker(nodes, edges, options);
@@ -215,7 +247,7 @@ const { updateRoutingOnNodesChange, resetRouting, refreshRouting, updateRoutingF
 Custom React Flow edge component that renders the routed path.
 
 ```tsx
-import { AvoidNodesEdge } from '@xyflow/avoid-nodes-edge/edge';
+import { AvoidNodesEdge } from 'avoid-nodes-edge/edge';
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
 ```
@@ -265,7 +297,7 @@ const edges: Edge[] = [
 Low-level hook that reads the routed path for a single edge from the store. Used internally by `AvoidNodesEdge` — useful if you're building a custom edge component.
 
 ```ts
-import { useAvoidNodesPath } from '@xyflow/avoid-nodes-edge';
+import { useAvoidNodesPath } from 'avoid-nodes-edge';
 
 const [path, labelX, labelY, wasRouted] = useAvoidNodesPath({
   id: 'edge-1',
@@ -297,7 +329,7 @@ Returns `[path, labelX, labelY, wasRouted]` — `wasRouted` is `false` while the
 Zustand store holding the computed routes from the worker.
 
 ```ts
-import { useAvoidRoutesStore } from '@xyflow/avoid-nodes-edge';
+import { useAvoidRoutesStore } from 'avoid-nodes-edge';
 
 // Read routes
 const routes = useAvoidRoutesStore((s) => s.routes);
@@ -322,7 +354,7 @@ const edgeRoute = useAvoidRoutesStore((s) => s.routes['edge-1']);
 Zustand store holding imperative routing actions. Useful for triggering re-routes from outside the component that owns the router.
 
 ```ts
-import { useAvoidRouterActionsStore } from '@xyflow/avoid-nodes-edge';
+import { useAvoidRouterActionsStore } from 'avoid-nodes-edge';
 
 const { resetRouting, updateRoutesForNodeId } =
   useAvoidRouterActionsStore((s) => s.actions);
@@ -341,7 +373,7 @@ updateRoutesForNodeId('node-1');
 Low-level hook that creates and manages the Web Worker. Used internally by `useAvoidNodesRouterFromWorker` — useful if you need direct control over the worker.
 
 ```ts
-import { useAvoidWorker } from '@xyflow/avoid-nodes-edge';
+import { useAvoidWorker } from 'avoid-nodes-edge';
 
 const { workerLoaded, post, close } = useAvoidWorker({
   create: true,
@@ -365,7 +397,7 @@ import {
   EDGE_BORDER_RADIUS,         // 0 — default corner radius (px)
   SHOULD_START_EDGE_AT_HANDLE_BORDER,  // true
   DEV_LOG_WEB_WORKER_MESSAGES,         // false
-} from '@xyflow/avoid-nodes-edge';
+} from 'avoid-nodes-edge';
 ```
 
 ---
@@ -396,7 +428,7 @@ import type {
   // Worker messages
   AvoidRouterWorkerCommand,
   AvoidRouterWorkerResponse,
-} from '@xyflow/avoid-nodes-edge';
+} from 'avoid-nodes-edge';
 ```
 
 ## Architecture
@@ -449,7 +481,7 @@ The `libavoid-js` WASM binary (~200KB) and the routing algorithm are computation
 If you see `Failed to load module script: The server responded with a non-JavaScript MIME type`, make sure:
 
 1. Your Vite config includes `worker: { format: 'es' }`
-2. Your Vite config includes `optimizeDeps: { exclude: ['@xyflow/avoid-nodes-edge'] }`
+2. Your Vite config includes `optimizeDeps: { exclude: ['avoid-nodes-edge'] }`
 3. Clear the Vite cache: `rm -rf node_modules/.vite`
 
 ### WASM not found

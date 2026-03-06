@@ -8,7 +8,8 @@
       "Bash(cp -r public/* examples/basic/public/)",
       "Bash(npx tsup)",
       "Bash(npx vite build)",
-      "Bash(npx vite --port 5199)"
+      "Bash(npx vite --port 5199)",
+      "Bash(npm publish)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",

@@ -8,6 +8,6 @@ export default defineConfig({
     format: 'es',
   },
   optimizeDeps: {
-    exclude: ['@xyflow/avoid-nodes-edge'],
+    exclude: ['avoid-nodes-edge'],
   },
 })

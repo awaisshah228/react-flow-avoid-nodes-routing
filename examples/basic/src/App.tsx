@@ -18,8 +18,8 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { nodes as defaultNodes, edges as defaultEdges } from "./initialElements";
-import { AvoidNodesEdge } from "@xyflow/avoid-nodes-edge/edge";
-import { useAvoidNodesRouterFromWorker } from "@xyflow/avoid-nodes-edge";
+import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
+import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { resolveCollisions } from "./utils/resolve-collisions";
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
