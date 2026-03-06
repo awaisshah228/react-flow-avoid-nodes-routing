@@ -4,7 +4,9 @@
       "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/src/**)",
       "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/**)",
       "Bash(grep -E '\\\\.\\(tsx|ts\\)$')",
-      "Bash(git stash)"
+      "Bash(git stash)",
+      "Bash(git remote get-url origin)",
+      "Bash(git stash pop)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit"
