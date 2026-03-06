@@ -1,6 +1,6 @@
 {
   "name": "avoid-nodes-edge",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Orthogonal edge routing for React Flow — edges avoid overlapping nodes via libavoid-js WASM running in a Web Worker.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -66,5 +66,14 @@
     "svg",
     "zustand"
   ],
+  "homepage": "https://github.com/awaisshah228/react-flow-avoid-nodes-routing/tree/turbo-package/packages/avoid-nodes-edge",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awaisshah228/react-flow-avoid-nodes-routing.git",
+    "directory": "packages/avoid-nodes-edge"
+  },
+  "bugs": {
+    "url": "https://github.com/awaisshah228/react-flow-avoid-nodes-routing/issues"
+  },
   "license": "MIT"
 }
