@@ -6,7 +6,7 @@ import {
   type EdgeProps,
   type EdgeMarker,
 } from "@xyflow/react";
-import { useAvoidNodesPath } from "../avoid";
+import { useAvoidNodesPath } from "./useAvoidNodesPath";
 
 /** Gap (px) between parallel avoid-nodes edges (same source/target). */
 const PARALLEL_EDGE_GAP = 22;

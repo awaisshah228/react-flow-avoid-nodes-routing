@@ -3,10 +3,18 @@
     "allow": [
       "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/src/**)",
       "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/**)",
-      "Bash(grep -E '\\\\.\\(tsx|ts\\)$')"
+      "Bash(grep -E '\\\\.\\(tsx|ts\\)$')",
+      "Bash(cp -r src/utils/resolve-collisions.ts examples/basic/src/utils/)",
+      "Bash(cp -r public/* examples/basic/public/)",
+      "Bash(npx tsup)",
+      "Bash(npx vite build)",
+      "Bash(npx vite --port 5199)"
     ],
     "additionalDirectories": [
-      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit"
+      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
+      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/avoid",
+      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/packages/avoid-nodes-edge/src",
+      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/packages/avoid-nodes-edge"
     ]
   }
 }

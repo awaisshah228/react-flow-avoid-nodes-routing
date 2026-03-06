@@ -17,7 +17,7 @@ export interface UseAvoidWorkerResult {
 
 /**
  * Creates the avoid-router Web Worker and waits for it to load WASM.
- * Listens for: loaded, routed (updates avoid store and optional callbacks).
+ * WASM loads exclusively in the worker thread — never on the main thread.
  */
 export function useAvoidWorker(options?: UseAvoidWorkerOptions): UseAvoidWorkerResult {
   const workerRef = useRef<Worker | null>(null);
@@ -37,7 +37,7 @@ export function useAvoidWorker(options?: UseAvoidWorkerOptions): UseAvoidWorkerR
     }
     let worker: Worker;
     try {
-      worker = new Worker(new URL("../workers/avoid-router.worker.ts", import.meta.url), { type: "module" });
+      worker = new Worker(new URL("./workers/avoid-router.worker.js", import.meta.url), { type: "module" });
     } catch (e) {
       console.error("[avoid-worker] Failed to create worker:", e);
       return;

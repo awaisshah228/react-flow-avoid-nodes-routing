@@ -1,0 +1,59 @@
+{
+  "name": "@xyflow/avoid-nodes-edge",
+  "version": "0.1.0",
+  "description": "Orthogonal edge routing for React Flow — edges avoid overlapping nodes via libavoid-js WASM running in a Web Worker.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./edge": {
+      "types": "./dist/edge.d.ts",
+      "import": "./dist/edge.js",
+      "require": "./dist/edge.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@xyflow/react": ">=12.0.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "zustand": ">=4.0.0"
+  },
+  "dependencies": {
+    "libavoid-js": "^0.4.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@xyflow/react": "^12.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.2",
+    "zustand": "^5.0.10"
+  },
+  "keywords": [
+    "react-flow",
+    "xyflow",
+    "edge-routing",
+    "orthogonal",
+    "libavoid",
+    "wasm",
+    "web-worker",
+    "avoid-nodes"
+  ],
+  "license": "MIT"
+}

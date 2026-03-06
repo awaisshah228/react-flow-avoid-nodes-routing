@@ -1,26 +1,17 @@
 {
-  "name": "@reactflow-pro/avoid-nodes",
+  "name": "avoid-nodes-monorepo",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "packageManager": "yarn@1.22.22",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "postinstall": "node scripts/copy-libavoid-wasm.cjs"
-  },
-  "dependencies": {
-    "@xyflow/react": "^12.7.0",
-    "libavoid-js": "^0.4.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "zustand": "^5.0.10"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
-    "@vitejs/plugin-react": "^4.5.2",
-    "typescript": "^5.0.2",
-    "vite": "^6.3.5"
+    "turbo": "^2.0.0"
   }
 }

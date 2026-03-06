@@ -1,5 +1,6 @@
 /**
- * Avoid-nodes routing (libavoid-js): route edges so they avoid nodes.
+ * @xyflow/avoid-nodes-edge
+ * Orthogonal edge routing for React Flow — WASM runs exclusively in a Web Worker.
  */
 
 export { AvoidRouter, routeAll, loadAvoidRouter } from "./router";
@@ -16,6 +17,13 @@ export type {
   UseAvoidNodesRouterOptions,
   UseAvoidNodesRouterResult,
 } from "./useAvoidNodesRouterFromWorker";
+
+export { useAvoidWorker } from "./useAvoidWorker";
+export type { UseAvoidWorkerOptions, UseAvoidWorkerResult } from "./useAvoidWorker";
+
+export type { AvoidRouterWorkerCommand, AvoidRouterWorkerResponse } from "./worker-messages";
+export { attachAvoidWorkerListener } from "./worker-listener";
+export type { AttachAvoidWorkerListenerOptions } from "./worker-listener";
 
 export {
   DEV_LOG_WEB_WORKER_MESSAGES,
