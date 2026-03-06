@@ -9,7 +9,12 @@
       "Bash(npx tsup)",
       "Bash(npx vite build)",
       "Bash(npx vite --port 5199)",
-      "Bash(npm publish)"
+      "Bash(npm publish)",
+      "Bash(npx vercel --prod)",
+      "Bash(npx vercel login)",
+      "Bash(npx vercel link --scope awaisshah228s-projects)",
+      "Bash(npx vercel link --scope awaisshah228s-projects --yes)",
+      "Bash(npx vercel --prod --scope awaisshah228s-projects --yes)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
