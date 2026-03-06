@@ -193,8 +193,24 @@ export class AvoidRouter {
       const srcShapeRef = shapeRefMap.get(edge.source);
       const tgtShapeRef = shapeRefMap.get(edge.target);
 
-      const sourcePos = this.getHandlePosition(src, "source");
-      const targetPos = this.getHandlePosition(tgt, "target");
+      // If nodes have explicit handle positions, use those; otherwise auto-detect
+      // best side based on relative positions so edges don't clip through their own node.
+      const explicitSrcPos = this.getExplicitHandlePosition(src, "source");
+      const explicitTgtPos = this.getExplicitHandlePosition(tgt, "target");
+
+      let sourcePos: HandlePosition;
+      let targetPos: HandlePosition;
+
+      if (explicitSrcPos && explicitTgtPos) {
+        sourcePos = explicitSrcPos;
+        targetPos = explicitTgtPos;
+      } else {
+        const srcBounds = nodeBounds.get(src.id)!;
+        const tgtBounds = nodeBounds.get(tgt.id)!;
+        const auto = this.autoDetectSides(srcBounds, tgtBounds);
+        sourcePos = explicitSrcPos ?? auto.source;
+        targetPos = explicitTgtPos ?? auto.target;
+      }
 
       let srcEnd: unknown;
       let tgtEnd: unknown;
@@ -276,14 +292,50 @@ export class AvoidRouter {
     return b;
   }
 
-  private getHandlePosition(node: Node, kind: "source" | "target"): HandlePosition {
+  /**
+   * Returns the explicitly set handle position on a node, or undefined if none is set.
+   */
+  private getExplicitHandlePosition(node: Node, kind: "source" | "target"): HandlePosition | undefined {
     const raw =
       kind === "source"
         ? (node.sourcePosition as string | undefined) ?? (node as { data?: { sourcePosition?: string } }).data?.sourcePosition
         : (node.targetPosition as string | undefined) ?? (node as { data?: { targetPosition?: string } }).data?.targetPosition;
     const s = String(raw ?? "").toLowerCase();
     if (s === "left" || s === "right" || s === "top" || s === "bottom") return s;
-    return kind === "source" ? "right" : "left";
+    return undefined;
+  }
+
+  /**
+   * Auto-detect the best side for source and target based on relative node positions.
+   * Picks the side that faces the other node so edges don't clip through their own node.
+   */
+  private autoDetectSides(
+    srcBounds: { x: number; y: number; w: number; h: number },
+    tgtBounds: { x: number; y: number; w: number; h: number }
+  ): { source: HandlePosition; target: HandlePosition } {
+    const srcCx = srcBounds.x + srcBounds.w / 2;
+    const srcCy = srcBounds.y + srcBounds.h / 2;
+    const tgtCx = tgtBounds.x + tgtBounds.w / 2;
+    const tgtCy = tgtBounds.y + tgtBounds.h / 2;
+
+    const dx = tgtCx - srcCx;
+    const dy = tgtCy - srcCy;
+
+    let source: HandlePosition;
+    let target: HandlePosition;
+
+    // Pick side based on which axis has greater separation
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      // Horizontal separation dominates
+      source = dx >= 0 ? "right" : "left";
+      target = dx >= 0 ? "left" : "right";
+    } else {
+      // Vertical separation dominates
+      source = dy >= 0 ? "bottom" : "top";
+      target = dy >= 0 ? "top" : "bottom";
+    }
+
+    return { source, target };
   }
 
   private getHandlePoint(
