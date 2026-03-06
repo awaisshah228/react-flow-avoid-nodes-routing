@@ -125,6 +125,99 @@ avoid-nodes-pro-example/
 
 ---
 
+## WASM Loading & Worker Routing Flow
+
+All heavy routing computation happens in the **Web Worker** — never on the main thread. Here's the full flow:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         APP STARTUP                                 │
+│                                                                     │
+│  1. App.tsx mounts                                                  │
+│     ├─ useAvoidRouterWasm()      → loads WASM on main thread        │
+│     │                              (fallback only, NOT used for     │
+│     │                               routing when worker is active)  │
+│     │                                                               │
+│     └─ useAvoidNodesRouterFromWorker(nodes, edges, options)         │
+│        │                                                            │
+│        └─ useAvoidWorker({ create: true })                          │
+│           │                                                         │
+│           ▼                                                         │
+│  2. Web Worker is spawned                                           │
+│     └─ avoid-router.worker.ts loads                                 │
+│        ├─ imports worker-polyfill.ts (polyfills window → self)      │
+│        └─ calls AvoidRouter.load()                                  │
+│           ├─ dynamically imports "libavoid-js"                      │
+│           ├─ calls AvoidLib.load("/libavoid.wasm")                  │
+│           │   └─ fetches + compiles WASM binary inside worker       │
+│           ├─ stores lib instance in AvoidRouter.lib                 │
+│           └─ posts { command: "loaded", success: true }             │
+│                                                                     │
+│  3. worker-listener.ts receives "loaded"                            │
+│     ├─ sets useAvoidRoutesStore.loaded = true                       │
+│     └─ sets workerLoaded = true in useAvoidWorker                   │
+│                                                                     │
+│  4. useAvoidNodesRouterFromWorker detects workerLoaded = true       │
+│     └─ sends { command: "reset", nodes, edges, options }            │
+│        to worker via postMessage()                                  │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      ROUTING (always in worker)                     │
+│                                                                     │
+│  5. Worker receives "reset"                                         │
+│     ├─ stores nodes/edges/options in internal model                 │
+│     └─ calls debouncedRoute() →                                     │
+│        └─ doRoute() →                                               │
+│           └─ AvoidRouter.getInstance().routeAll(nodes, edges, opts) │
+│              ├─ creates libavoid Router (orthogonal)                │
+│              ├─ registers each node as ShapeRef obstacle            │
+│              ├─ creates ConnRef for each edge                       │
+│              ├─ calls router.processTransaction() ← HEAVY WASM WORK│
+│              ├─ extracts polylines → SVG path strings               │
+│              └─ cleans up WASM objects (free memory)                │
+│                                                                     │
+│  6. Worker posts { command: "routed", routes }                      │
+│     └─ routes = { [edgeId]: { path, labelX, labelY } }             │
+│                                                                     │
+│  7. worker-listener.ts receives "routed"                            │
+│     └─ calls setRoutes(routes) on Zustand store                     │
+│                                                                     │
+│  8. Edge components re-render                                       │
+│     └─ AvoidNodesEdge → useAvoidNodesPath(id) → reads SVG path     │
+│        from store → renders with BaseEdge                           │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    USER INTERACTIONS                                 │
+│                                                                     │
+│  DRAG NODE:                                                         │
+│    Main thread: onNodesChange → updateRoutingOnNodesChange()        │
+│    ├─ batches changed node IDs (debounced 10ms)                     │
+│    └─ sends { command: "updateNodes", nodes: [changed] } to worker  │
+│       └─ worker updates internal model → debouncedRoute() → posts   │
+│          new routes back                                            │
+│                                                                     │
+│  ADD/REMOVE NODE OR EDGE:                                           │
+│    Main thread: detects structural change                           │
+│    └─ sends { command: "reset", nodes, edges, options } (full reset)│
+│       └─ worker rebuilds entire model → routes → posts back         │
+│                                                                     │
+│  CHANGE OPTIONS (spacing, rounding):                                │
+│    useEffect detects option change                                  │
+│    └─ sends { command: "reset" } with new options                   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Why routing never runs on the main thread
+
+- `useAvoidNodesRouterFromWorker` is the hook used in `App.tsx` — it sends all routing commands to the worker via `postMessage()`
+- The worker loads its **own copy** of the WASM module and runs `routeAll()` inside the worker thread
+- `useAvoidRouterWasm()` loads WASM on the main thread as a **fallback** (e.g. if the worker fails to spawn), but when the worker is active, `useAvoidNodesRouterFromWorker` handles everything
+- The main-thread router (`useAvoidNodesRouter`) has a `disabled` option and is not used when the worker hook is active
+
+---
+
 ## Key Files Explained
 
 ### `src/avoid/router.ts` — Core Routing Engine
