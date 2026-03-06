@@ -59,9 +59,16 @@ export function useAvoidNodesRouterFromWorker(
   const { post, workerLoaded } = useAvoidWorker({ create: true });
 
   const didResetRef = useRef(false);
+  const nodesMeasuredRef = useRef(false);
 
   const sendReset = useCallback(() => {
     if (!workerLoaded) return;
+    // Don't route until React Flow has measured at least some nodes —
+    // without measured data, obstacles get wrong sizes and edges clip through.
+    const nodes = nodesRef.current;
+    const hasMeasured = nodes.length === 0 || nodes.some((n) => n.measured?.width != null);
+    if (!hasMeasured) return;
+    nodesMeasuredRef.current = true;
     const avoidEdges = edgesRef.current.filter((e) => e.type === "avoidNodes");
     if (avoidEdges.length === 0) {
       setRoutes({});
@@ -69,7 +76,7 @@ export function useAvoidNodesRouterFromWorker(
     }
     post({
       command: "reset",
-      nodes: nodesRef.current,
+      nodes,
       edges: avoidEdges,
       options: optsRef.current,
     });
@@ -101,7 +108,7 @@ export function useAvoidNodesRouterFromWorker(
 
   const updateRoutingOnNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
-      if (!workerLoaded || !didResetRef.current) return;
+      if (!workerLoaded) return;
 
       let hasPosition = false;
       let hasDimensions = false;
@@ -121,24 +128,34 @@ export function useAvoidNodesRouterFromWorker(
 
       if (!hasPosition && !hasDimensions && !hasAddOrRemove) return;
 
-      if (hasAddOrRemove) {
+      // On first dimensions change (initial measurement) or structural changes,
+      // do a full reset so all nodes get correct measured bounds.
+      const needsFullReset = hasAddOrRemove || (hasDimensions && !nodesMeasuredRef.current);
+
+      if (needsFullReset) {
         if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
         pendingChangeIdsRef.current.clear();
+        // Use rAF to ensure React has flushed state (nodesRef is up to date).
         debounceRef.current = setTimeout(() => {
           debounceRef.current = null;
-          sendReset();
+          requestAnimationFrame(() => sendReset());
         }, DEBOUNCE_ROUTING_MS);
         return;
       }
 
+      if (!didResetRef.current) return;
+
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         debounceRef.current = null;
-        const ids = Array.from(pendingChangeIdsRef.current);
-        pendingChangeIdsRef.current.clear();
-        if (ids.length > 0) {
-          sendIncrementalChanges(ids);
-        }
+        // Use rAF to ensure React has flushed state before reading nodesRef.
+        requestAnimationFrame(() => {
+          const ids = Array.from(pendingChangeIdsRef.current);
+          pendingChangeIdsRef.current.clear();
+          if (ids.length > 0) {
+            sendIncrementalChanges(ids);
+          }
+        });
       }, DEBOUNCE_ROUTING_MS);
     },
     [workerLoaded, sendReset, sendIncrementalChanges]

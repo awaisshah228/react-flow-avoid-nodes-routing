@@ -47,23 +47,28 @@ function Flow() {
     [updateRoutingOnNodesChange]
   );
 
+  // Defer resetRouting so React flushes state and the worker reads fresh nodes/edges.
+  const deferredReset = useCallback(() => {
+    requestAnimationFrame(() => resetRouting());
+  }, [resetRouting]);
+
   const onEdgesChange = useCallback(
     (changes: EdgeChange<Edge>[]) => {
       setEdges((eds) => applyEdgeChanges(changes, eds));
       // Re-route when edges are added/removed
       const needsReset = changes.some((c) => c.type === "add" || c.type === "remove");
-      if (needsReset) resetRouting();
+      if (needsReset) deferredReset();
     },
-    [resetRouting]
+    [deferredReset]
   );
 
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => addEdge({ ...params, type: "avoidNodes" }, eds));
       // Trigger re-route so the new edge avoids nodes
-      resetRouting();
+      deferredReset();
     },
-    [resetRouting]
+    [deferredReset]
   );
 
   // Resolve node-on-node collisions after drag ends
@@ -74,9 +79,9 @@ function Flow() {
         return resolved;
       });
       // Re-route edges after collision resolution
-      resetRouting();
+      deferredReset();
     },
-    [resetRouting]
+    [deferredReset]
   );
 
   return (
