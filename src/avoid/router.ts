@@ -3,27 +3,34 @@
  * Use AvoidRouter.load() once, then AvoidRouter.getInstance().routeAll(nodes, edges).
  */
 
+// Import React Flow types for nodes and edges used throughout the router
 import type { Node, Edge } from "@xyflow/react";
 
-/** Result for one edge: SVG path and label position. */
+// Represents the routed result for a single edge — the SVG path string and the x/y position for a label
 export type AvoidRoute = { path: string; labelX: number; labelY: number };
 
-/** Options for routing (buffer, nudging, rounding, grid snap). */
+// Configuration options that control how edges are routed around nodes
 export type AvoidRouterOptions = {
-  shapeBufferDistance?: number;
-  idealNudgingDistance?: number;
-  edgeRounding?: number;
-  diagramGridSize?: number;
+  shapeBufferDistance?: number;       // Extra padding around each node that edges must avoid
+  idealNudgingDistance?: number;      // How far apart parallel edge segments should be nudged
+  edgeRounding?: number;             // Corner radius for rounded orthogonal bends
+  diagramGridSize?: number;          // Snap edge waypoints to a grid of this size
   shouldSplitEdgesNearHandle?: boolean;
 };
 
-/** Handle position on node boundary. Path connects exactly at this point (no gap). Orthogonal routing gives smooth-step-like segments. */
+// Which side of a node a handle (connection point) is on
 export type HandlePosition = "left" | "right" | "top" | "bottom";
 
+// Default URL to load the libavoid WebAssembly binary from
 const LIBAVOID_WASM_URL = "/libavoid.wasm";
+// How long to wait between retries if WASM loading fails (in milliseconds)
 const WASM_RETRY_DELAY_MS = 2000;
+// Maximum number of times to retry loading the WASM module
 const WASM_MAX_RETRIES = 5;
 
+// Type definition for the libavoid-js WASM library instance.
+// Maps all the constructors (Router, Point, Rectangle, etc.) and constants
+// (direction flags, routing options) that we use from the C++ libavoid library.
 type AvoidLibInstance = {
   Router: new (flags: number) => unknown;
   Point: new (x: number, y: number) => { x: number; y: number };
@@ -62,9 +69,13 @@ type AvoidLibInstance = {
  * Use static load() once, then getInstance().routeAll(nodes, edges).
  */
 export class AvoidRouter {
+  // Singleton references — the WASM library and the single router instance
   private static lib: AvoidLibInstance | null = null;
   private static instance: AvoidRouter | null = null;
 
+  // Loads the libavoid WASM module with retry logic.
+  // Retries up to WASM_MAX_RETRIES times with a delay between attempts.
+  // Returns true if the library loaded successfully, false otherwise.
   static async load(wasmUrl: string = LIBAVOID_WASM_URL): Promise<boolean> {
     if (AvoidRouter.lib != null) return true;
     if (typeof globalThis === "undefined") return false;
@@ -78,6 +89,9 @@ export class AvoidRouter {
     return false;
   }
 
+  // Single attempt to load the WASM module.
+  // Resolves the WASM URL to an absolute path, dynamically imports libavoid-js,
+  // calls its load() to initialize the WASM, then stores the library instance.
   private static async loadOnce(wasmUrl: string): Promise<boolean> {
     const origin = (globalThis as unknown as { location?: { origin?: string } }).location?.origin;
     const absoluteWasmUrl = origin && wasmUrl.startsWith("/") ? `${origin}${wasmUrl}` : wasmUrl;
@@ -99,25 +113,42 @@ export class AvoidRouter {
     }
   }
 
+  // Returns the singleton AvoidRouter instance.
+  // Throws if the WASM library hasn't been loaded yet via load().
   static getInstance(): AvoidRouter {
     if (AvoidRouter.instance == null) AvoidRouter.instance = new AvoidRouter();
     if (AvoidRouter.lib == null) throw new Error("AvoidRouter.load() must be called first.");
     return AvoidRouter.instance;
   }
 
+  // Main routing method — takes all nodes and edges, computes obstacle-avoiding
+  // orthogonal paths for every edge, and returns a map of edgeId -> AvoidRoute.
+  //
+  // Steps:
+  // 1. Filter out group nodes (only real nodes are obstacles)
+  // 2. Create a libavoid Router and configure its parameters
+  // 3. Register each node as a rectangular obstacle shape with connection pins
+  // 4. Create a connector (ConnRef) for each edge between source/target pins
+  // 5. Run the routing algorithm (processTransaction)
+  // 6. Extract the routed polyline for each edge and convert to SVG path
+  // 7. Clean up all libavoid objects to free WASM memory
   routeAll(nodes: Node[], edges: Edge[], options?: AvoidRouterOptions): Record<string, AvoidRoute> {
     const Avoid = AvoidRouter.lib;
     if (!Avoid) return {};
 
+    // Extract options with defaults
     const shapeBuffer = options?.shapeBufferDistance ?? 8;
     const idealNudging = options?.idealNudgingDistance ?? 10;
     const cornerRadius = options?.edgeRounding ?? 0;
     const gridSize = options?.diagramGridSize ?? 0;
 
+    // Filter out group nodes — they aren't obstacles, only containers.
+    // Build lookup maps for quick node access and pre-compute absolute bounds.
     const obstacleNodes = nodes.filter((n) => n.type !== "group");
     const nodeById = new Map(nodes.map((n) => [n.id, n]));
     const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, this.getNodeBoundsAbsolute(n, nodeById)]));
 
+    // Create the libavoid orthogonal router and configure its routing parameters
     const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
       setRoutingParameter: (p: number, v: number) => void;
       setRoutingOption: (o: number, v: boolean) => void;
@@ -131,12 +162,15 @@ export class AvoidRouter {
     router.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
     router.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
 
+    // Pin class IDs — each represents a connection point position on a shape.
+    // These IDs are used by libavoid to know where edges can attach to nodes.
     const PIN_CENTER = 1;
     const PIN_TOP = 2;
     const PIN_BOTTOM = 3;
     const PIN_LEFT = 4;
     const PIN_RIGHT = 5;
 
+    // Maps handle positions (top/bottom/left/right) to their pin class IDs
     const pinIdForPosition: Record<HandlePosition, number> = {
       top: PIN_TOP,
       bottom: PIN_BOTTOM,
@@ -144,6 +178,9 @@ export class AvoidRouter {
       right: PIN_RIGHT,
     };
 
+    // Defines the proportional x/y position on the shape boundary and
+    // the allowed connection direction for each pin type.
+    // e.g. PIN_TOP is at (0.5, 0) = top-center, only allows upward connections.
     const pinProportions: Record<number, { x: number; y: number; dir: number }> = {
       [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
       [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
@@ -152,6 +189,9 @@ export class AvoidRouter {
       [PIN_RIGHT]: { x: 1, y: 0.5, dir: Avoid.ConnDirRight },
     };
 
+    // Register each obstacle node as a rectangle shape in the libavoid router.
+    // For each shape, create 5 connection pins (center, top, bottom, left, right)
+    // so edges can attach at any of these positions.
     const shapeRefMap = new Map<string, unknown>();
     const shapeRefs: { ref: unknown }[] = [];
     for (const node of obstacleNodes) {
@@ -170,6 +210,11 @@ export class AvoidRouter {
       }
     }
 
+    // Create a connector (ConnRef) for each edge.
+    // Determines the source and target connection points:
+    // - If the node is an obstacle, connect via its shape pin (attached routing)
+    // - If the node is a group (not an obstacle), connect via a free-floating point
+    // Each connector is set to orthogonal routing (right-angle segments only).
     const connRefs: { edgeId: string; connRef: unknown }[] = [];
     for (const edge of edges) {
       const src = nodeById.get(edge.source);
@@ -208,6 +253,8 @@ export class AvoidRouter {
       connRefs.push({ edgeId: edge.id, connRef });
     }
 
+    // Run the libavoid routing algorithm — this computes all edge paths at once,
+    // finding routes that avoid overlapping with obstacle shapes.
     try {
       router.processTransaction();
     } catch {
@@ -215,6 +262,9 @@ export class AvoidRouter {
       return {};
     }
 
+    // Extract the computed route for each edge.
+    // Convert the polyline (list of waypoints) into an SVG path string,
+    // and pick the midpoint as the label position.
     const result: Record<string, AvoidRoute> = {};
     for (const { edgeId, connRef } of connRefs) {
       try {
@@ -238,6 +288,8 @@ export class AvoidRouter {
     return result;
   }
 
+  // Gets the local position and dimensions of a node.
+  // Tries measured size first, then explicit width/height, then style, with fallback defaults.
   private getNodeBounds(node: Node): { x: number; y: number; w: number; h: number } {
     const x = node.position?.x ?? 0;
     const y = node.position?.y ?? 0;
@@ -246,6 +298,9 @@ export class AvoidRouter {
     return { x, y, w, h };
   }
 
+  // Computes the absolute (world-space) bounds of a node by walking up
+  // the parent chain and accumulating parent positions. This is needed
+  // because child nodes have positions relative to their parent.
   private getNodeBoundsAbsolute(
     node: Node,
     nodeById: Map<string, Node>
@@ -262,6 +317,9 @@ export class AvoidRouter {
     return b;
   }
 
+  // Determines which side of a node a handle is on (left/right/top/bottom).
+  // Checks both the node's direct properties and its data object.
+  // Defaults to "right" for source handles and "left" for target handles.
   private getHandlePosition(node: Node, kind: "source" | "target"): HandlePosition {
     const raw =
       kind === "source"
@@ -272,6 +330,8 @@ export class AvoidRouter {
     return kind === "source" ? "right" : "left";
   }
 
+  // Converts a handle position (left/right/top/bottom) into an actual x/y coordinate
+  // on the node's boundary. The point is at the center of the respective edge.
   private getHandlePoint(
     bounds: { x: number; y: number; w: number; h: number },
     position: HandlePosition
@@ -293,11 +353,16 @@ export class AvoidRouter {
     }
   }
 
+  // Snaps x/y coordinates to the nearest grid point (rounds to nearest multiple of gridSize)
   private snapToGrid(x: number, y: number, gridSize: number): { x: number; y: number } {
     if (gridSize <= 0) return { x, y };
     return { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize };
   }
 
+  // Converts a polyline (series of waypoints) into an SVG path string.
+  // If cornerRadius > 0, adds quadratic bezier curves (Q commands) at each bend
+  // to create smooth rounded corners instead of sharp right angles.
+  // If cornerRadius is 0, produces a simple M/L path with straight segments.
   private polylineToPath(
     size: number,
     getPoint: (i: number) => { x: number; y: number },
@@ -345,6 +410,9 @@ export class AvoidRouter {
     return d;
   }
 
+  // Frees all libavoid objects (connectors and shapes) from the router.
+  // This is important to prevent WASM memory leaks since libavoid
+  // allocates memory in the WASM heap that isn't garbage collected by JS.
   private cleanup(
     router: { deleteConnector: (c: unknown) => void; deleteShape: (s: unknown) => void },
     connRefs: { connRef: unknown }[],
@@ -359,10 +427,13 @@ export class AvoidRouter {
   }
 }
 
+// Convenience function to load the WASM module — wraps AvoidRouter.load()
 export async function loadAvoidRouter(): Promise<boolean> {
   return AvoidRouter.load();
 }
 
+// Convenience function to route all edges — wraps AvoidRouter.getInstance().routeAll().
+// Returns an empty object if routing fails for any reason.
 export function routeAll(
   nodes: Node[],
   edges: Edge[],
