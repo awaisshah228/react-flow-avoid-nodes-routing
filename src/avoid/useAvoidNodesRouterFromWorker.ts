@@ -17,8 +17,22 @@ import type { Node, NodeChange, Edge } from "@xyflow/react";
 import { useAvoidRoutesStore, useAvoidRouterActionsStore } from "./store";
 import { DEBOUNCE_ROUTING_MS } from "./constants";
 import type { AvoidRouterOptions } from "./router";
-import type { UseAvoidNodesRouterOptions, UseAvoidNodesRouterResult } from "./useAvoidNodesRouter";
 import { useAvoidWorker } from "./useAvoidWorker";
+
+export interface UseAvoidNodesRouterOptions {
+  shouldSplitEdgesNearHandle?: boolean;
+  edgeToEdgeSpacing?: number;
+  edgeToNodeSpacing?: number;
+  edgeRounding?: number;
+  diagramGridSize?: number;
+}
+
+export interface UseAvoidNodesRouterResult {
+  updateRoutingOnNodesChange: (changes: NodeChange<Node>[]) => void;
+  resetRouting: () => void;
+  refreshRouting: () => void;
+  updateRoutingForNodeIds: (nodeIds: string[]) => void;
+}
 
 const DEFAULT_OPTIONS: UseAvoidNodesRouterOptions = {
   edgeToEdgeSpacing: 10,

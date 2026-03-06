@@ -11,18 +11,11 @@ export type { AvoidRoutesState, AvoidRouterActions } from "./store";
 export { useAvoidNodesPath } from "./useAvoidNodesPath";
 export type { UseAvoidNodesPathParams, Position } from "./useAvoidNodesPath";
 
-export { useAvoidRouterWasm } from "./useAvoidRouterWasm";
-export type { UseAvoidRouterWasmResult } from "./useAvoidRouterWasm";
-
-export { useAvoidNodesRouter } from "./useAvoidNodesRouter";
+export { useAvoidNodesRouterFromWorker } from "./useAvoidNodesRouterFromWorker";
 export type {
   UseAvoidNodesRouterOptions,
   UseAvoidNodesRouterResult,
-} from "./useAvoidNodesRouter";
-
-export { useAvoidNodesRouterActions } from "./useAvoidNodesRouterActions";
-
-export { useAvoidNodesRouterFromWorker } from "./useAvoidNodesRouterFromWorker";
+} from "./useAvoidNodesRouterFromWorker";
 
 export {
   DEV_LOG_WEB_WORKER_MESSAGES,

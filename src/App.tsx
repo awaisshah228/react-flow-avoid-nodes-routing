@@ -20,7 +20,6 @@ import "@xyflow/react/dist/style.css";
 import { nodes as defaultNodes, edges as defaultEdges } from "./initialElements";
 import { AvoidNodesEdge } from "./edges/AvoidNodesEdge";
 import { useAvoidNodesRouterFromWorker } from "./avoid";
-import { useAvoidRouterWasm } from "./avoid";
 import { resolveCollisions } from "./utils/resolve-collisions";
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
@@ -30,10 +29,7 @@ function Flow() {
   const [nodes, setNodes] = useState<Node[]>(defaultNodes);
   const [edges, setEdges] = useState<Edge[]>(defaultEdges);
 
-  // Load WASM (main thread — needed as fallback; worker loads its own copy)
-  useAvoidRouterWasm();
-
-  // Worker-based routing: edges route around nodes on a separate thread
+  // Worker-based routing: edges route around nodes on a separate thread (WASM loads in worker only)
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, {
     edgeToNodeSpacing: 12,
     edgeToEdgeSpacing: 10,

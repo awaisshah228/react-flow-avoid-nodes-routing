@@ -14,7 +14,7 @@ Built with [React Flow v12](https://reactflow.dev/) and [libavoid-js](https://gi
 - **Edge-to-edge spacing** — parallel edges are nudged apart to avoid overlap
 - **Corner rounding** — optional rounded corners on orthogonal paths
 - **Grid snapping** — optional snap-to-grid for edge waypoints
-- **Fallback rendering** — smooth-step or straight lines when WASM is still loading
+- **Fallback rendering** — smooth-step or straight lines while the worker loads WASM
 
 ---
 
@@ -26,7 +26,6 @@ Built with [React Flow v12](https://reactflow.dev/) and [libavoid-js](https://gi
  │       (main thread)        │
  │                            │
  │  App.tsx                   │
- │   ├─ useAvoidRouterWasm()  │  ← loads WASM on main thread (fallback)
  │   └─ useAvoidNodesRouter   │
  │      FromWorker()          │  ← orchestrates worker communication
  │         │                  │
@@ -62,7 +61,7 @@ Built with [React Flow v12](https://reactflow.dev/) and [libavoid-js](https://gi
 
 ### Data Flow (step by step)
 
-1. **App mounts** → `useAvoidRouterWasm()` loads WASM on main thread (fallback), `useAvoidWorker()` spawns a Web Worker that loads its own WASM copy.
+1. **App mounts** → `useAvoidWorker()` spawns a Web Worker that loads WASM exclusively on the worker thread.
 
 2. **Worker ready** → Worker posts `{ command: "loaded", success: true }`. The listener sets `store.loaded = true`. The hook sends a `reset` command with all nodes + edges + options.
 
@@ -105,10 +104,7 @@ avoid-nodes-pro-example/
 │   │   ├── worker-listener.ts  # Syncs worker messages → Zustand store
 │   │   ├── useAvoidWorker.ts   # Hook: creates/manages the Web Worker
 │   │   ├── useAvoidNodesRouterFromWorker.ts  # Hook: orchestrates worker routing
-│   │   ├── useAvoidNodesRouter.ts            # Hook: main-thread routing (fallback)
-│   │   ├── useAvoidNodesRouterActions.ts     # Hook: expose reset/update without prop drilling
-│   │   ├── useAvoidNodesPath.ts              # Hook: per-edge path from store
-│   │   └── useAvoidRouterWasm.ts             # Hook: loads WASM on main thread
+│   │   └── useAvoidNodesPath.ts              # Hook: per-edge path from store
 │   │
 │   ├── edges/
 │   │   └── AvoidNodesEdge.tsx  # Custom edge component using BaseEdge
@@ -134,10 +130,6 @@ All heavy routing computation happens in the **Web Worker** — never on the mai
 │                         APP STARTUP                                 │
 │                                                                     │
 │  1. App.tsx mounts                                                  │
-│     ├─ useAvoidRouterWasm()      → loads WASM on main thread        │
-│     │                              (fallback only, NOT used for     │
-│     │                               routing when worker is active)  │
-│     │                                                               │
 │     └─ useAvoidNodesRouterFromWorker(nodes, edges, options)         │
 │        │                                                            │
 │        └─ useAvoidWorker({ create: true })                          │
@@ -209,12 +201,12 @@ All heavy routing computation happens in the **Web Worker** — never on the mai
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Why routing never runs on the main thread
+### Why WASM never loads on the main thread
 
+- WASM is loaded **exclusively inside the Web Worker** — never on the main thread
 - `useAvoidNodesRouterFromWorker` is the hook used in `App.tsx` — it sends all routing commands to the worker via `postMessage()`
-- The worker loads its **own copy** of the WASM module and runs `routeAll()` inside the worker thread
-- `useAvoidRouterWasm()` loads WASM on the main thread as a **fallback** (e.g. if the worker fails to spawn), but when the worker is active, `useAvoidNodesRouterFromWorker` handles everything
-- The main-thread router (`useAvoidNodesRouter`) has a `disabled` option and is not used when the worker hook is active
+- The worker loads the WASM module and runs `routeAll()` inside the worker thread
+- While WASM loads, edges gracefully fall back to smooth-step or straight paths via `useAvoidNodesPath()`
 
 ---
 
@@ -292,7 +284,7 @@ The `postinstall` script automatically copies `libavoid.wasm` to `public/`.
 
 ```tsx
 import { AvoidNodesEdge } from "./edges/AvoidNodesEdge";
-import { useAvoidNodesRouterFromWorker, useAvoidRouterWasm } from "./avoid";
+import { useAvoidNodesRouterFromWorker } from "./avoid";
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
 
@@ -300,8 +292,7 @@ function Flow() {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
 
-  useAvoidRouterWasm(); // load WASM on main thread (fallback)
-
+  // WASM loads exclusively on the worker thread — never on the main thread
   const { updateRoutingOnNodesChange } = useAvoidNodesRouterFromWorker(
     nodes,
     edges,
