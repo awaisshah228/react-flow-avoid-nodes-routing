@@ -8,6 +8,7 @@
 > ```
 > Full package documentation: [`avoid-nodes-edge on npm`](https://www.npmjs.com/package/avoid-nodes-edge)
 > Package source & monorepo setup: [`turbo-package` branch](https://github.com/awaisshah228/react-flow-avoid-nodes-routing/tree/turbo-package)
+> **[Live Demo](https://avoid-nodes-pro-example.vercel.app)**
 
 Orthogonal edge routing that avoids overlapping nodes, powered by **libavoid-js** (WASM) with **Web Worker** support for smooth, non-blocking UI.
 
