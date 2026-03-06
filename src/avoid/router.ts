@@ -138,16 +138,6 @@ export class AvoidRouter {
     router.setRoutingOption(Avoid.RoutingOption.nudgeSharedPathsWithCommonEndPoint.value, true);
     router.setRoutingOption(Avoid.RoutingOption.performUnifyingNudgingPreprocessingStep.value, true);
 
-    // Penalise routes that go against the pin's preferred direction —
-    // this forces edges to route cleanly away from their own node before turning.
-    if (Avoid.RoutingParameter.portDirectionPenalty) {
-      router.setRoutingParameter(Avoid.RoutingParameter.portDirectionPenalty.value, 100);
-    }
-    // Penalise routes that reverse direction (U-turns near nodes)
-    if (Avoid.RoutingParameter.reverseDirectionPenalty) {
-      router.setRoutingParameter(Avoid.RoutingParameter.reverseDirectionPenalty.value, 50);
-    }
-
     const PIN_CENTER = 1;
     const PIN_TOP = 2;
     const PIN_BOTTOM = 3;
@@ -176,12 +166,18 @@ export class AvoidRouter {
       [PIN_RIGHT]: { x: 1, y: 0.5, dir: CONN_DIR_RIGHT },
     };
 
+    // Pad each shape rectangle so libavoid routes edges with clearance from the
+    // visual node border. Without this, edges connected to a node can hug its
+    // boundary because libavoid doesn't treat the connected shape as an obstacle
+    // for that specific edge.
+    const shapePadding = shapeBuffer;
+
     const shapeRefMap = new Map<string, unknown>();
     const shapeRefs: { ref: unknown }[] = [];
     for (const node of obstacleNodes) {
       const b = nodeBounds.get(node.id)!;
-      const topLeft = new Avoid.Point(b.x, b.y);
-      const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
+      const topLeft = new Avoid.Point(b.x - shapePadding, b.y - shapePadding);
+      const bottomRight = new Avoid.Point(b.x + b.w + shapePadding, b.y + b.h + shapePadding);
       const rect = new Avoid.Rectangle(topLeft, bottomRight);
       const shapeRef = new Avoid.ShapeRef(router, rect);
       shapeRefs.push({ ref: shapeRef });
@@ -189,9 +185,7 @@ export class AvoidRouter {
 
       for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
         const p = pinProportions[pinId];
-        // insideOffset pushes the pin outward from the shape boundary so edges
-        // don't hug/overlap the connected node's border
-        const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, shapeBuffer, p.dir);
+        const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
         pin.setExclusive(false);
       }
     }
