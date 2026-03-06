@@ -1,7 +1,12 @@
 # Avoid Nodes Edge Routing — React Flow + libavoid-js
 
-> **This logic is published as an npm package:** [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge)
-> See the [`turbo-package`](../../tree/turbo-package) branch for the npm package source and monorepo setup.
+> **This routing logic is published as an npm package: [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge)**
+>
+> Install it in your own project:
+> ```bash
+> npm install avoid-nodes-edge libavoid-js
+> ```
+> Full package documentation: [`packages/avoid-nodes-edge/README.md`](packages/avoid-nodes-edge/README.md)
 
 Orthogonal edge routing that avoids overlapping nodes, powered by **libavoid-js** (WASM) with **Web Worker** support for smooth, non-blocking UI.
 

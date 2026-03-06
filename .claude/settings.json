@@ -3,7 +3,8 @@
     "allow": [
       "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/src/**)",
       "Read(//Users/awaisshah228/Documents/coding/ai-diagram-generator/**)",
-      "Bash(grep -E '\\\\.\\(tsx|ts\\)$')"
+      "Bash(grep -E '\\\\.\\(tsx|ts\\)$')",
+      "Bash(git stash)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit"
