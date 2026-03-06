@@ -48,13 +48,23 @@
   },
   "keywords": [
     "react-flow",
+    "reactflow",
     "xyflow",
     "edge-routing",
     "orthogonal",
     "libavoid",
     "wasm",
+    "webassembly",
     "web-worker",
-    "avoid-nodes"
+    "avoid-nodes",
+    "turbo",
+    "turborepo",
+    "react",
+    "diagram",
+    "graph",
+    "node-routing",
+    "svg",
+    "zustand"
   ],
   "license": "MIT"
 }
