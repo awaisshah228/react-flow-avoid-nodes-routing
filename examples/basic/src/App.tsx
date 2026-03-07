@@ -25,16 +25,105 @@ import { resolveCollisions } from "./utils/resolve-collisions";
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
 const proOptions: ProOptions = { hideAttribution: true };
 
+const panelStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 12,
+  right: 12,
+  background: "rgba(255, 255, 255, 0.95)",
+  borderRadius: 8,
+  padding: 16,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+  zIndex: 10,
+  minWidth: 240,
+  fontSize: 13,
+};
+
+const rowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
+};
+
+type Settings = {
+  edgeRounding: number;
+  edgeToEdgeSpacing: number;
+  edgeToNodeSpacing: number;
+  diagramGridSize: number;
+  shouldSplitEdgesNearHandle: boolean;
+};
+
+function SettingsPanel({
+  settings,
+  onChange,
+}: {
+  settings: Settings;
+  onChange: (key: string, value: number | boolean) => void;
+}) {
+  const sliders = [
+    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
+    { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
+    { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
+    { key: "diagramGridSize", label: "Diagram Grid Size", min: 0, max: 48 },
+  ] as const;
+
+  return (
+    <div style={panelStyle}>
+      <div style={{ fontWeight: 600, marginBottom: 12 }}>Settings</div>
+      {sliders.map(({ key, label, min, max }) => (
+        <div key={key} style={rowStyle}>
+          <label>{label}</label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              value={settings[key]}
+              onChange={(e) => onChange(key, Number(e.target.value))}
+              style={{ width: 100 }}
+            />
+            <span style={{ minWidth: 28, textAlign: "right" }}>{settings[key]}</span>
+          </div>
+        </div>
+      ))}
+      <div style={rowStyle}>
+        <label>Split Edges Near Handle</label>
+        <div style={{ display: "flex", gap: 4 }}>
+          {[false, true].map((val) => (
+            <button
+              key={String(val)}
+              onClick={() => onChange("shouldSplitEdgesNearHandle", val)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 4,
+                border: "1px solid #ccc",
+                background: settings.shouldSplitEdgesNearHandle === val ? "#333" : "#fff",
+                color: settings.shouldSplitEdgesNearHandle === val ? "#fff" : "#333",
+                cursor: "pointer",
+              }}
+            >
+              {val ? "True" : "False"}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Flow() {
   const [nodes, setNodes] = useState<Node[]>(defaultNodes);
   const [edges, setEdges] = useState<Edge[]>(defaultEdges);
+  const [settings, setSettings] = useState<Settings>({
+    edgeRounding: 8,
+    edgeToEdgeSpacing: 10,
+    edgeToNodeSpacing: 12,
+    diagramGridSize: 0,
+    shouldSplitEdgesNearHandle: false,
+  });
 
   // Worker-based routing: edges route around nodes on a separate thread (WASM loads in worker only)
-  const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, {
-    edgeToNodeSpacing: 12,
-    edgeToEdgeSpacing: 10,
-    edgeRounding: 8,
-  });
+  const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
@@ -81,6 +170,13 @@ function Flow() {
     [deferredReset]
   );
 
+  const onSettingChange = useCallback(
+    (key: string, value: number | boolean) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -97,6 +193,7 @@ function Flow() {
       <Background />
       <Controls />
       <MiniMap />
+      <SettingsPanel settings={settings} onChange={onSettingChange} />
     </ReactFlow>
   );
 }
