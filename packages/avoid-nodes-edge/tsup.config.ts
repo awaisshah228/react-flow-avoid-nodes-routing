@@ -9,10 +9,11 @@ export default defineConfig([
     },
     format: ["esm", "cjs"],
     dts: true,
-    sourcemap: true,
+    sourcemap: false,
     external: ["react", "react-dom", "@xyflow/react", "zustand"],
     splitting: true,
     clean: true,
+    minify: true,
   },
   // Worker entry — compiled to JS, libavoid-js stays external (resolved by consumer's bundler)
   {
@@ -20,7 +21,8 @@ export default defineConfig([
       "workers/avoid-router.worker": "src/workers/avoid-router.worker.ts",
     },
     format: ["esm"],
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
     external: ["libavoid-js"],
     splitting: false,
     clean: false,
