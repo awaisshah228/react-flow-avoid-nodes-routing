@@ -26,7 +26,9 @@
       "Bash(python3 -m json.tool)",
       "Bash(npx pkg-stats avoid-nodes-edge)",
       "Bash(curl -s http://localhost:5175/src/App.tsx)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(git push origin turbo-package)",
+      "Bash(npx turbo run dev --filter=./examples/collision-demo)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
