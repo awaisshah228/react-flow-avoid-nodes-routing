@@ -21,13 +21,21 @@
       "Bash(gh issue:*)",
       "Bash(gh api graphql -f query=':*)",
       "Bash(gh api graphql -f query='mutation\\($discussionId: ID!, $body: String!\\) { addDiscussionComment\\(input: {discussionId: $discussionId, body: $body}\\) { comment { id url } } }' -f discussionId='D_kwDOC75CTc4ASZa7' -f body='I built an open-source package that solves this: **[avoid-nodes-edge]\\(https://www.npmjs.com/package/avoid-nodes-edge\\)**:*)",
-      "Bash(gh api graphql -F discussionId='D_kwDOC75CTc4ASLxi' -F \"body=@/tmp/gh-comment-body.txt\" -f query='mutation\\($discussionId: ID!, $body: String!\\) { addDiscussionComment\\(input: {discussionId: $discussionId, body: $body}\\) { comment { url } } }')"
+      "Bash(gh api graphql -F discussionId='D_kwDOC75CTc4ASLxi' -F \"body=@/tmp/gh-comment-body.txt\" -f query='mutation\\($discussionId: ID!, $body: String!\\) { addDiscussionComment\\(input: {discussionId: $discussionId, body: $body}\\) { comment { url } } }')",
+      "Bash(curl -s https://api.npmjs.org/downloads/point/last-week/avoid-nodes-edge)",
+      "Bash(python3 -m json.tool)",
+      "Bash(npx pkg-stats avoid-nodes-edge)",
+      "Bash(curl -s http://localhost:5175/src/App.tsx)",
+      "Read(//tmp/**)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/avoid",
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/packages/avoid-nodes-edge/src",
-      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/packages/avoid-nodes-edge"
+      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/packages/avoid-nodes-edge",
+      "/tmp/test-avoid-nodes",
+      "/private/tmp/test-avoid-nodes",
+      "/private/tmp/test-avoid-nodes2"
     ]
   }
 }
