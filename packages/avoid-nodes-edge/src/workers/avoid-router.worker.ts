@@ -17,6 +17,7 @@ type AvoidRouterOptions = {
   idealNudgingDistance?: number;
   edgeRounding?: number;
   diagramGridSize?: number;
+  shouldSplitEdgesNearHandle?: boolean;
 };
 
 type FlowNode = {
@@ -220,6 +221,7 @@ function polylineToPath(
   return d;
 }
 
+
 function routeAll(nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOptions): Record<string, AvoidRoute> {
   const Avoid = avoidLib;
   if (!Avoid) return {};
@@ -228,6 +230,7 @@ function routeAll(nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOpt
   const idealNudging = options?.idealNudgingDistance ?? 10;
   const cornerRadius = options?.edgeRounding ?? 0;
   const gridSize = options?.diagramGridSize ?? 0;
+  const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
   const obstacleNodes = nodes.filter((n) => n.type !== "group");
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]));
@@ -283,16 +286,28 @@ function routeAll(nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOpt
     const targetPos = getHandlePosition(tgt, "target");
     let srcEnd: unknown;
     let tgtEnd: unknown;
-    if (srcShapeRef) {
-      srcEnd = new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER);
+    if (splitNearHandle) {
+      // Shape-pin ConnEnds: libavoid spreads edges along the node border.
+      if (srcShapeRef) {
+        srcEnd = new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER);
+      } else {
+        const sb = getNodeBoundsAbsolute(src, nodeById);
+        const sourcePt = getHandlePoint(sb, sourcePos);
+        srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+      }
+      if (tgtShapeRef) {
+        tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
+      } else {
+        const tb = getNodeBoundsAbsolute(tgt, nodeById);
+        const targetPt = getHandlePoint(tb, targetPos);
+        tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
+      }
     } else {
+      // Fixed-point ConnEnds at the exact node border: edges share a common
+      // exit point then diverge via libavoid nudging.
       const sb = getNodeBoundsAbsolute(src, nodeById);
       const sourcePt = getHandlePoint(sb, sourcePos);
       srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
-    }
-    if (tgtShapeRef) {
-      tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
-    } else {
       const tb = getNodeBoundsAbsolute(tgt, nodeById);
       const targetPt = getHandlePoint(tb, targetPos);
       tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));

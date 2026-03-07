@@ -15,6 +15,7 @@ export type AvoidRouterOptions = {
   idealNudgingDistance?: number;      // How far apart parallel edge segments should be nudged
   edgeRounding?: number;             // Corner radius for rounded orthogonal bends
   diagramGridSize?: number;          // Snap edge waypoints to a grid of this size
+  shouldSplitEdgesNearHandle?: boolean; // Fixed-point handles (edges share exit point, then diverge)
 };
 
 // Which side of a node a handle (connection point) is on
@@ -140,6 +141,7 @@ export class AvoidRouter {
     const idealNudging = options?.idealNudgingDistance ?? 10;
     const cornerRadius = options?.edgeRounding ?? 0;
     const gridSize = options?.diagramGridSize ?? 0;
+    const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
     // Filter out group nodes — they aren't obstacles, only containers.
     // Build lookup maps for quick node access and pre-compute absolute bounds.
     const obstacleNodes = nodes.filter((n) => n.type !== "group");
@@ -228,19 +230,30 @@ export class AvoidRouter {
       let srcEnd: unknown;
       let tgtEnd: unknown;
 
-      if (srcShapeRef) {
-        const pinId = pinIdForPosition[sourcePos] ?? PIN_CENTER;
-        srcEnd = new Avoid.ConnEnd(srcShapeRef, pinId);
+      if (splitNearHandle) {
+        // Shape-pin ConnEnds: libavoid spreads edges along the node border.
+        if (srcShapeRef) {
+          const pinId = pinIdForPosition[sourcePos] ?? PIN_CENTER;
+          srcEnd = new Avoid.ConnEnd(srcShapeRef, pinId);
+        } else {
+          const sb = this.getNodeBoundsAbsolute(src, nodeById);
+          const sourcePt = this.getHandlePoint(sb, sourcePos);
+          srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+        }
+        if (tgtShapeRef) {
+          const pinId = pinIdForPosition[targetPos] ?? PIN_CENTER;
+          tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinId);
+        } else {
+          const tb = this.getNodeBoundsAbsolute(tgt, nodeById);
+          const targetPt = this.getHandlePoint(tb, targetPos);
+          tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
+        }
       } else {
+        // Fixed-point ConnEnds at the exact node border: edges share a common
+        // exit point then diverge via libavoid nudging.
         const sb = this.getNodeBoundsAbsolute(src, nodeById);
         const sourcePt = this.getHandlePoint(sb, sourcePos);
         srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
-      }
-
-      if (tgtShapeRef) {
-        const pinId = pinIdForPosition[targetPos] ?? PIN_CENTER;
-        tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinId);
-      } else {
         const tb = this.getNodeBoundsAbsolute(tgt, nodeById);
         const targetPt = this.getHandlePoint(tb, targetPos);
         tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));

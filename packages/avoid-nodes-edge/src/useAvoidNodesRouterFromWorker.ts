@@ -24,6 +24,7 @@ export interface UseAvoidNodesRouterOptions {
   edgeToNodeSpacing?: number;
   edgeRounding?: number;
   diagramGridSize?: number;
+  shouldSplitEdgesNearHandle?: boolean;
 }
 
 export interface UseAvoidNodesRouterResult {
@@ -44,6 +45,7 @@ function toRouterOptions(opts?: UseAvoidNodesRouterOptions): AvoidRouterOptions 
     shapeBufferDistance: opts?.edgeToNodeSpacing ?? DEFAULT_OPTIONS.edgeToNodeSpacing,
     edgeRounding: opts?.edgeRounding,
     diagramGridSize: opts?.diagramGridSize,
+    shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle,
   };
 }
 
@@ -191,6 +193,7 @@ export function useAvoidNodesRouterFromWorker(
     opts.idealNudgingDistance,
     opts.edgeRounding,
     opts.diagramGridSize,
+    opts.shouldSplitEdgesNearHandle,
     sendReset,
   ]);
 
