@@ -28,7 +28,11 @@
       "Bash(curl -s http://localhost:5175/src/App.tsx)",
       "Read(//tmp/**)",
       "Bash(git push origin turbo-package)",
-      "Bash(npx turbo run dev --filter=./examples/collision-demo)"
+      "Bash(npx turbo run dev --filter=./examples/collision-demo)",
+      "Bash(git push origin main)",
+      "Bash(npx turbo run build --filter=@xyflow/avoid-nodes-example)",
+      "Bash(npx turbo run build --filter=@xyflow/avoid-nodes-example --force)",
+      "Bash(npx turbo run build --force)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
