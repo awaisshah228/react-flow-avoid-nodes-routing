@@ -5,6 +5,8 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
+  Background,
+  Controls,
   type Node,
   type Edge,
   type NodeChange,
@@ -15,6 +17,7 @@ import '@xyflow/react/dist/style.css';
 
 import { useAvoidNodesRouterFromWorker } from 'avoid-nodes-edge';
 import { AvoidNodesEdge } from 'avoid-nodes-edge/edge';
+import { resolveCollisions } from './utils/resolve-collisions';
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
 
@@ -94,22 +97,35 @@ function Flow() {
     [updateRoutingOnNodesChange]
   );
 
+  const deferredReset = useCallback(() => {
+    requestAnimationFrame(() => resetRouting());
+  }, [resetRouting]);
+
   const onEdgesChange = useCallback(
     (changes: EdgeChange<Edge>[]) => {
       setEdges((eds) => applyEdgeChanges(changes, eds));
       if (changes.some((c) => c.type === 'add' || c.type === 'remove')) {
-        requestAnimationFrame(() => resetRouting());
+        deferredReset();
       }
     },
-    [resetRouting]
+    [deferredReset]
   );
 
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => addEdge({ ...params, type: 'avoidNodes' }, eds));
-      requestAnimationFrame(() => resetRouting());
+      deferredReset();
     },
-    [resetRouting]
+    [deferredReset]
+  );
+
+  // Resolve node-on-node collisions after drag ends
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+      deferredReset();
+    },
+    [deferredReset]
   );
 
   return (
@@ -120,11 +136,15 @@ function Flow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStop={onNodeDragStop}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={{ type: 'avoidNodes' }}
         fitView
         fitViewOptions={{ padding: 0.3 }}
-      />
+      >
+        <Background />
+        <Controls />
+      </ReactFlow>
     </div>
   );
 }
