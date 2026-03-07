@@ -6,6 +6,11 @@ export default defineConfig({
   plugins: [react()],
   worker: {
     format: 'es',
+    rollupOptions: {
+      output: {
+        entryFileNames: '[name].js',
+      },
+    },
   },
   optimizeDeps: {
     exclude: ['avoid-nodes-edge'],
