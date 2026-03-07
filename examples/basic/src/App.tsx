@@ -50,7 +50,6 @@ type Settings = {
   edgeToEdgeSpacing: number;
   edgeToNodeSpacing: number;
   diagramGridSize: number;
-  shouldSplitEdgesNearHandle: boolean;
 };
 
 function SettingsPanel({
@@ -86,27 +85,6 @@ function SettingsPanel({
           </div>
         </div>
       ))}
-      <div style={rowStyle}>
-        <label>Split Edges Near Handle</label>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[false, true].map((val) => (
-            <button
-              key={String(val)}
-              onClick={() => onChange("shouldSplitEdgesNearHandle", val)}
-              style={{
-                padding: "4px 10px",
-                borderRadius: 4,
-                border: "1px solid #ccc",
-                background: settings.shouldSplitEdgesNearHandle === val ? "#333" : "#fff",
-                color: settings.shouldSplitEdgesNearHandle === val ? "#fff" : "#333",
-                cursor: "pointer",
-              }}
-            >
-              {val ? "True" : "False"}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -119,7 +97,6 @@ function Flow() {
     edgeToEdgeSpacing: 10,
     edgeToNodeSpacing: 12,
     diagramGridSize: 0,
-    shouldSplitEdgesNearHandle: false,
   });
 
   // Worker-based routing: edges route around nodes on a separate thread (WASM loads in worker only)

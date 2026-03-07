@@ -17,7 +17,6 @@ type AvoidRouterOptions = {
   idealNudgingDistance?: number;
   edgeRounding?: number;
   diagramGridSize?: number;
-  shouldSplitEdgesNearHandle?: boolean;
 };
 
 type FlowNode = {
@@ -221,79 +220,6 @@ function polylineToPath(
   return d;
 }
 
-/**
- * When shouldSplitEdgesNearHandle is true, replace the first/last segment with
- * a short stub + a turn so that edges sharing the same handle visually fan out
- * instead of overlapping. The stub exits perpendicular from the handle, then
- * turns toward the next waypoint.
- */
-function splitEdgesNearHandles(
-  points: { x: number; y: number }[],
-  stubLength: number
-): { x: number; y: number }[] {
-  if (points.length < 2 || stubLength <= 0) return points;
-  const result = [...points];
-
-  // Split at start: insert a stub point that continues in the handle's exit direction
-  // (first segment direction), then a turn point aligned with the second waypoint.
-  {
-    const first = result[0];
-    const second = result[1];
-    const dx = second.x - first.x;
-    const dy = second.y - first.y;
-    const len = Math.hypot(dx, dy);
-    if (len > stubLength * 2) {
-      // Determine exit direction (horizontal or vertical based on dominant axis of first segment)
-      const horizontal = Math.abs(dx) > Math.abs(dy);
-      if (horizontal) {
-        const dir = dx > 0 ? 1 : -1;
-        const stubPt = { x: first.x + dir * stubLength, y: first.y };
-        const turnPt = { x: first.x + dir * stubLength, y: second.y };
-        // Only insert if the turn creates a visible bend
-        if (Math.abs(first.y - second.y) > 1) {
-          result.splice(1, 0, stubPt, turnPt);
-        }
-      } else {
-        const dir = dy > 0 ? 1 : -1;
-        const stubPt = { x: first.x, y: first.y + dir * stubLength };
-        const turnPt = { x: second.x, y: first.y + dir * stubLength };
-        if (Math.abs(first.x - second.x) > 1) {
-          result.splice(1, 0, stubPt, turnPt);
-        }
-      }
-    }
-  }
-
-  // Split at end: same logic in reverse
-  {
-    const last = result[result.length - 1];
-    const prev = result[result.length - 2];
-    const dx = prev.x - last.x;
-    const dy = prev.y - last.y;
-    const len = Math.hypot(dx, dy);
-    if (len > stubLength * 2) {
-      const horizontal = Math.abs(dx) > Math.abs(dy);
-      if (horizontal) {
-        const dir = dx > 0 ? 1 : -1;
-        const stubPt = { x: last.x + dir * stubLength, y: last.y };
-        const turnPt = { x: last.x + dir * stubLength, y: prev.y };
-        if (Math.abs(last.y - prev.y) > 1) {
-          result.splice(result.length - 1, 0, turnPt, stubPt);
-        }
-      } else {
-        const dir = dy > 0 ? 1 : -1;
-        const stubPt = { x: last.x, y: last.y + dir * stubLength };
-        const turnPt = { x: prev.x, y: last.y + dir * stubLength };
-        if (Math.abs(last.x - prev.x) > 1) {
-          result.splice(result.length - 1, 0, turnPt, stubPt);
-        }
-      }
-    }
-  }
-
-  return result;
-}
-
 function routeAll(nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOptions): Record<string, AvoidRoute> {
   const Avoid = avoidLib;
   if (!Avoid) return {};
@@ -302,8 +228,6 @@ function routeAll(nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOpt
   const idealNudging = options?.idealNudgingDistance ?? 10;
   const cornerRadius = options?.edgeRounding ?? 0;
   const gridSize = options?.diagramGridSize ?? 0;
-  const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
-
   const obstacleNodes = nodes.filter((n) => n.type !== "group");
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]));
@@ -393,16 +317,10 @@ function routeAll(nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOpt
       const size = route.size();
       if (size < 2) continue;
 
-      // Extract raw polyline points
-      let points: { x: number; y: number }[] = [];
+      const points: { x: number; y: number }[] = [];
       for (let i = 0; i < size; i++) {
         const p = route.get_ps(i);
         points.push({ x: p.x, y: p.y });
-      }
-
-      // Optionally split near handles so edges fan out from shared connection points
-      if (splitNearHandle) {
-        points = splitEdgesNearHandles(points, shapeBuffer + 4);
       }
 
       const path = polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });

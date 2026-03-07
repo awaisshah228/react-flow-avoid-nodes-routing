@@ -15,7 +15,6 @@ export type AvoidRouterOptions = {
   idealNudgingDistance?: number;      // How far apart parallel edge segments should be nudged
   edgeRounding?: number;             // Corner radius for rounded orthogonal bends
   diagramGridSize?: number;          // Snap edge waypoints to a grid of this size
-  shouldSplitEdgesNearHandle?: boolean;
 };
 
 // Which side of a node a handle (connection point) is on
@@ -141,8 +140,6 @@ export class AvoidRouter {
     const idealNudging = options?.idealNudgingDistance ?? 10;
     const cornerRadius = options?.edgeRounding ?? 0;
     const gridSize = options?.diagramGridSize ?? 0;
-    const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
-
     // Filter out group nodes — they aren't obstacles, only containers.
     // Build lookup maps for quick node access and pre-compute absolute bounds.
     const obstacleNodes = nodes.filter((n) => n.type !== "group");
@@ -279,10 +276,6 @@ export class AvoidRouter {
           points.push({ x: p.x, y: p.y });
         }
 
-        if (splitNearHandle) {
-          points = this.splitEdgesNearHandles(points, shapeBuffer + 4);
-        }
-
         const path = this.polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
         const mid = Math.floor(points.length / 2);
         const midP = points[mid];
@@ -360,72 +353,6 @@ export class AvoidRouter {
       default:
         return { x: x + w, y: cy };
     }
-  }
-
-  // Replaces the first/last segment with a short stub + turn so that edges
-  // sharing the same handle visually fan out instead of overlapping.
-  private splitEdgesNearHandles(
-    points: { x: number; y: number }[],
-    stubLength: number
-  ): { x: number; y: number }[] {
-    if (points.length < 2 || stubLength <= 0) return points;
-    const result = [...points];
-
-    // Split at start
-    {
-      const first = result[0];
-      const second = result[1];
-      const dx = second.x - first.x;
-      const dy = second.y - first.y;
-      const len = Math.hypot(dx, dy);
-      if (len > stubLength * 2) {
-        const horizontal = Math.abs(dx) > Math.abs(dy);
-        if (horizontal) {
-          const dir = dx > 0 ? 1 : -1;
-          const stubPt = { x: first.x + dir * stubLength, y: first.y };
-          const turnPt = { x: first.x + dir * stubLength, y: second.y };
-          if (Math.abs(first.y - second.y) > 1) {
-            result.splice(1, 0, stubPt, turnPt);
-          }
-        } else {
-          const dir = dy > 0 ? 1 : -1;
-          const stubPt = { x: first.x, y: first.y + dir * stubLength };
-          const turnPt = { x: second.x, y: first.y + dir * stubLength };
-          if (Math.abs(first.x - second.x) > 1) {
-            result.splice(1, 0, stubPt, turnPt);
-          }
-        }
-      }
-    }
-
-    // Split at end
-    {
-      const last = result[result.length - 1];
-      const prev = result[result.length - 2];
-      const dx = prev.x - last.x;
-      const dy = prev.y - last.y;
-      const len = Math.hypot(dx, dy);
-      if (len > stubLength * 2) {
-        const horizontal = Math.abs(dx) > Math.abs(dy);
-        if (horizontal) {
-          const dir = dx > 0 ? 1 : -1;
-          const stubPt = { x: last.x + dir * stubLength, y: last.y };
-          const turnPt = { x: last.x + dir * stubLength, y: prev.y };
-          if (Math.abs(last.y - prev.y) > 1) {
-            result.splice(result.length - 1, 0, turnPt, stubPt);
-          }
-        } else {
-          const dir = dy > 0 ? 1 : -1;
-          const stubPt = { x: last.x, y: last.y + dir * stubLength };
-          const turnPt = { x: prev.x, y: last.y + dir * stubLength };
-          if (Math.abs(last.x - prev.x) > 1) {
-            result.splice(result.length - 1, 0, turnPt, stubPt);
-          }
-        }
-      }
-    }
-
-    return result;
   }
 
   // Snaps x/y coordinates to the nearest grid point (rounds to nearest multiple of gridSize)

@@ -273,26 +273,6 @@ edgeRounding = 0:        edgeRounding = 10:       edgeRounding = 20:
     (sharp)             (slight curve)          (wide curve)
 ```
 
-### `shouldSplitEdgesNearHandle` — Fan out shared handles
-
-When multiple edges connect to the same handle, they normally overlap near the handle before diverging. Enabling this option inserts an extra waypoint a few pixels from the handle, creating a short "stub" segment so edges fan out cleanly:
-
-```
-shouldSplitEdgesNearHandle = false:     shouldSplitEdgesNearHandle = true:
-
-    +------+                               +------+
-    | Node |                               | Node |
-    +--*---+                               +--*---+
-       ||\                                    |
-       || \                                   +--+
-       ||  \                                 /    \
-       |    \--- Edge B                     /      \--- Edge B
-       |                                   /
-       +------- Edge A                    +------- Edge A
-
-(edges overlap near handle)           (edges fan out from stub)
-```
-
 ### `diagramGridSize` — Grid snapping
 
 ```

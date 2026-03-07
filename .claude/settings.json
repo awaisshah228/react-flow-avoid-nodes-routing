@@ -34,7 +34,8 @@
       "Bash(npx turbo run build --filter=@xyflow/avoid-nodes-example --force)",
       "Bash(npx turbo run build --force)",
       "Bash(npx vercel inspect --scope awaisshah228s-projects)",
-      "Bash(npx turbo run build --filter=avoid-nodes-edge)"
+      "Bash(npx turbo run build --filter=avoid-nodes-edge)",
+      "Bash(npx turbo run build --filter=avoid-nodes-edge --force)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",

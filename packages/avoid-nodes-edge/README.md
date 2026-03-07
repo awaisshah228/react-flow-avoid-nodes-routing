@@ -236,7 +236,6 @@ const { updateRoutingOnNodesChange, resetRouting, refreshRouting, updateRoutingF
 | `edgeToEdgeSpacing` | `number` | `10` | Distance (px) between parallel edge segments |
 | `edgeRounding` | `number` | `0` | Corner radius (px) for rounded orthogonal bends |
 | `diagramGridSize` | `number` | `0` | Snap edge waypoints to a grid of this size (0 = no grid) |
-| `shouldSplitEdgesNearHandle` | `boolean` | `false` | When `true`, inserts extra waypoints near source/target handles so that multiple edges sharing the same handle fan out instead of overlapping. Creates a short "stub" segment before diverging. |
 
 #### Return Value
 
