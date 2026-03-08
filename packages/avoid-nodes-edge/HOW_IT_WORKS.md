@@ -282,6 +282,20 @@ diagramGridSize = 0:             diagramGridSize = 20:
   (exact position)                (nearest grid intersection)
 ```
 
+### `autoBestSideConnection` — Auto handle side selection
+
+```
+autoBestSideConnection = false:          autoBestSideConnection = true:
+
+  Uses handle positions from                Picks sides based on node positions:
+  node/edge data (e.g. right→left)          A right of B? → source=LEFT, target=RIGHT
+                                            A below B? → source=TOP, target=BOTTOM
+```
+
+### `shouldSplitEdgesNearHandle` — Split edges near connection points
+
+When enabled, edges that share a corridor are split into separate segments near their handles, making it clearer which edge connects to which node.
+
 ---
 
 ## Why WASM + Web Worker?
@@ -303,3 +317,157 @@ Running this in a **Web Worker** means:
 Running as **WASM** (compiled C++) means:
 - 10-50x faster than equivalent JavaScript
 - The libavoid algorithm is battle-tested (used in Inkscape, Dunnart, and other diagram editors)
+
+---
+
+## Group-Aware Batch Routing
+
+When your diagram contains **group nodes** (parent containers with child nodes), edges that cross group boundaries need special handling. A single libavoid router treats every obstacle as a solid wall — so a group's bounding box would block edges between its children and the outside world.
+
+### The Problem
+
+```
+ +========================+
+ |  Group G               |
+ |  +-----+    +-----+   |
+ |  |  A  |    |  B  |   |        +-----+
+ |  +-----+    +-----+   |        |  C  |
+ +========================+        +-----+
+
+ Edge: A -> C
+```
+
+If we register Group G as an obstacle, the edge from A to C cannot exit the group — libavoid sees the group border as a wall.
+
+### The Solution: Batch by Passthrough Groups
+
+The router groups edges into **batches** based on which groups they need to pass through:
+
+1. **Collect ancestor groups** — For each edge, walk up the `parentId` chain of both source and target nodes to find all ancestor groups.
+2. **Compute passthrough set** — The set of groups that are ancestors of one endpoint but not the other. These are the groups the edge must cross.
+3. **Group edges by passthrough set** — Edges with the same passthrough set are routed together in one batch.
+4. **Route each batch separately** — For each batch, create a fresh libavoid router that registers all nodes as obstacles **except** the passthrough groups. This lets edges freely cross those group boundaries.
+
+```
+Batch 1 (passthrough = {G}):
+  - Edge A -> C: Group G is NOT an obstacle, so the edge can exit freely.
+  - All other nodes (A, B, C) are obstacles as normal.
+
+Batch 2 (passthrough = {}):
+  - Edge A -> B: Both inside G, no groups to cross.
+  - Group G IS an obstacle for unrelated edges.
+```
+
+### Code Flow
+
+```
+getAncestorGroups(nodeId)     → walks parentId chain, returns Set<string> of group IDs
+getPassthroughGroups(edge)    → symmetricDifference(srcAncestors, tgtAncestors)
+groupEdgesByPassthrough()     → Map<passthroughKey, Edge[]>
+
+For each batch:
+  router = new Router()
+  register all nodes EXCEPT passthrough groups as obstacles
+  register edges as connectors
+  router.processTransaction()  → routes all edges in batch
+```
+
+This approach means:
+- Edges between siblings inside a group route normally (group is an obstacle for outside edges)
+- Edges crossing group boundaries route freely through those groups
+- Multiple nesting levels work — deeply nested nodes correctly identify all ancestor groups
+
+---
+
+## Auto Best Side Detection
+
+When `autoBestSideConnection` is enabled, the router automatically picks the optimal handle side (top/bottom/left/right) for each edge based on the relative positions of source and target nodes.
+
+### Algorithm
+
+```typescript
+function getBestSides(srcBounds, tgtBounds) {
+  // Compare center points of source and target
+  dx = tgtCenter.x - srcCenter.x
+  dy = tgtCenter.y - srcCenter.y
+
+  if (|dx| >= |dy|) {
+    // Horizontal dominant → use left/right sides
+    dx >= 0 ? source=RIGHT, target=LEFT
+           : source=LEFT,  target=RIGHT
+  } else {
+    // Vertical dominant → use top/bottom sides
+    dy >= 0 ? source=BOTTOM, target=TOP
+           : source=TOP,    target=BOTTOM
+  }
+}
+```
+
+### Visual Example
+
+```
+ Target is to the RIGHT (dx > dy):
+ +-----+                    +-----+
+ |  A  |---> RIGHT    LEFT --->  B  |
+ +-----+                    +-----+
+   source=RIGHT, target=LEFT
+
+ Target is BELOW (dy > dx):
+ +-----+
+ |  A  |
+ +--+--+
+    | BOTTOM
+    v
+    | TOP
+ +--+--+
+ |  B  |
+ +-----+
+   source=BOTTOM, target=TOP
+```
+
+This ensures edges take the most natural path between nodes regardless of how handles are defined in the React Flow node data. Without this feature, edges use the handle positions specified in the node/edge data (defaulting to right→left).
+
+---
+
+## Collision Resolution (Group-Aware)
+
+The `resolveCollisions()` utility pushes overlapping nodes apart iteratively. It is **group-aware** — it never pushes a parent group away from its children, which would destroy subflow layouts.
+
+### How It Works
+
+1. **Group by parent** — Non-group nodes are grouped by their `parentId`. Nodes with the same parent are "siblings."
+2. **Resolve within sibling groups** — For each group of siblings, run the overlap-pushing algorithm. This only moves nodes that share the same container.
+3. **Resolve root-level nodes** — Separately resolve root-level nodes (including groups) against each other, but **skip ancestor-descendant pairs** using the `areRelated()` check.
+
+### Why This Matters
+
+```
+ WITHOUT group-awareness:
+ +========================+        +-----+
+ |  Group G               |        |  C  |
+ |  +-----+               |        +-----+
+ |  |  A  | ← drag here   |
+ |  +-----+               |
+ +========================+
+              ↓
+ Group G gets pushed LEFT, A stays → layout destroyed
+
+ WITH group-awareness:
+ Only sibling nodes within G get pushed apart.
+ Group G itself is never pushed away from its children.
+```
+
+### The `areRelated()` Check
+
+```typescript
+function isAncestor(ancestorId, nodeId, nodeById) {
+  // Walk up nodeId's parentId chain
+  // Return true if ancestorId is found
+}
+
+function areRelated(a, b, nodeById) {
+  return isAncestor(a.id, b.id) || isAncestor(b.id, a.id)
+}
+```
+
+This prevents collision resolution from ever acting between a node and any of its ancestors, preserving the nested structure of subflows.

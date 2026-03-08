@@ -9,6 +9,8 @@ Orthogonal edge routing for [React Flow](https://reactflow.dev/) — edges autom
 ## Features
 
 - Orthogonal (right-angle) edge routing that avoids overlapping nodes
+- **Group-aware routing** — edges pass through ancestor groups but route around unrelated groups
+- **Auto best side detection** — automatically picks the optimal handle side (left/right/top/bottom) based on relative node positions
 - WASM routing engine runs entirely in a Web Worker — zero main-thread jank
 - Incremental updates: dragging a node only re-routes affected edges
 - Parallel edge support with automatic offset
@@ -237,6 +239,7 @@ const { updateRoutingOnNodesChange, resetRouting, refreshRouting, updateRoutingF
 | `edgeRounding` | `number` | `0` | Corner radius (px) for rounded orthogonal bends |
 | `diagramGridSize` | `number` | `0` | Snap edge waypoints to a grid of this size (0 = no grid) |
 | `shouldSplitEdgesNearHandle` | `boolean` | `false` | When `false`, edges share a common exit point near the handle and diverge after a small gap. When `true`, edges spread out along the node border. |
+| `autoBestSideConnection` | `boolean` | `false` | When `true`, automatically detects the best handle side (left/right/top/bottom) for each edge based on relative node positions. Overrides default right→left behavior. |
 
 #### Return Value
 
@@ -457,6 +460,39 @@ AvoidNodesEdge
   reads route from store
   renders SVG path
 ```
+
+### Group-Aware Batch Routing
+
+When your diagram has group nodes (React Flow `type: "group"` with child nodes using `parentId`), the router uses a **batch routing** strategy:
+
+1. **Ancestor detection** — For each edge, the router walks up the `parentId` chain of both source and target nodes to find all ancestor groups (`getAncestorGroups()`).
+
+2. **Passthrough grouping** — Edges are batched by their combined set of ancestor groups. For example, an edge from a child of Group A to a child of Group B gets the passthrough set `{A, B}`.
+
+3. **Per-batch obstacle sets** — Each batch gets its own libavoid router instance. The obstacles include all non-group nodes plus any group nodes that the batch does NOT need to pass through. Groups in the passthrough set are excluded from obstacles, allowing edges to cross through them.
+
+4. **Separate routing** — Each batch is routed independently with its own obstacle configuration, ensuring edges going into a group can penetrate it while other edges route around it.
+
+```
+Edge: child-of-A → child-of-B
+  Passthrough groups: {A, B}
+  Obstacles: all non-group nodes + groups NOT in {A, B}
+  Result: edge passes through groups A and B, avoids everything else
+
+Edge: external-node → external-node
+  Passthrough groups: {} (none)
+  Obstacles: all non-group nodes + ALL group nodes
+  Result: edge routes around all groups
+```
+
+### Auto Best Side Detection
+
+When `autoBestSideConnection` is enabled, the router compares the center points of source and target nodes and picks the optimal handle positions:
+
+- **Horizontal dominant** (`|dx| >= |dy|`): source exits `right`, target enters `left` (or reversed if target is to the left)
+- **Vertical dominant** (`|dy| > |dx|`): source exits `bottom`, target enters `top` (or reversed if target is above)
+
+This produces cleaner routing for diagrams where nodes are positioned in any direction, not just left-to-right.
 
 ### Why WASM never loads on the main thread
 
