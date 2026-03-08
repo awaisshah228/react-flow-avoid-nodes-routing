@@ -10,13 +10,17 @@
     "postinstall": "node scripts/copy-libavoid-wasm.cjs"
   },
   "dependencies": {
-    "avoid-nodes-edge": "*",
+    "@dagrejs/dagre": "^2.0.4",
     "@xyflow/react": "^12.7.0",
+    "avoid-nodes-edge": "*",
+    "d3-hierarchy": "^3.1.2",
+    "elkjs": "^0.11.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@types/d3-hierarchy": "^3.1.7",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.5.2",

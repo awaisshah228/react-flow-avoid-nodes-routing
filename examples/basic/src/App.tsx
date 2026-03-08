@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -21,9 +21,11 @@ import "@xyflow/react/dist/style.css";
 import { basicNodes, basicEdges } from "./initialElementsBasic";
 import { nodes as groupNodes, edges as groupEdges } from "./initialElements";
 import { subflowNodes, subflowEdges } from "./initialElementsSubflows";
+import { elkNodes, elkEdges } from "./initialElementsElk";
 import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
 import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { resolveCollisions } from "./utils/resolve-collisions";
+import { runAutoLayout, type LayoutDirection, type LayoutAlgorithmName } from "./utils/auto-layout";
 import GroupNode from "./GroupNode";
 import SelectedNodesToolbar from "./SelectedNodesToolbar";
 
@@ -31,7 +33,7 @@ const edgeTypes = { avoidNodes: AvoidNodesEdge };
 const nodeTypes = { group: GroupNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
-type ExampleTab = "basic" | "group" | "subflows";
+type ExampleTab = "basic" | "group" | "subflows" | "elk";
 
 const tabBarStyle: React.CSSProperties = {
   position: "absolute",
@@ -204,11 +206,13 @@ const initialNodesForTab: Record<ExampleTab, Node[]> = {
   basic: basicNodes,
   group: groupNodes,
   subflows: subflowNodes,
+  elk: elkNodes,
 };
 const initialEdgesForTab: Record<ExampleTab, Edge[]> = {
   basic: basicEdges,
   group: groupEdges,
   subflows: subflowEdges,
+  elk: elkEdges,
 };
 
 function Flow({ tab }: { tab: ExampleTab }) {
@@ -299,16 +303,264 @@ function Flow({ tab }: { tab: ExampleTab }) {
   );
 }
 
+type AutoLayoutSettings = Settings & {
+  layoutDirection: LayoutDirection;
+  layoutAlgorithm: LayoutAlgorithmName;
+  layoutSpacing: number;
+};
+
+function AutoLayoutSettingsPanel({
+  settings,
+  onChange,
+  onLayoutChange,
+  onReLayout,
+}: {
+  settings: AutoLayoutSettings;
+  onChange: (key: string, value: number | boolean) => void;
+  onLayoutChange: (key: string, value: string | number) => void;
+  onReLayout: () => void;
+}) {
+  const sliders = [
+    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
+    { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
+    { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
+  ] as const;
+
+  return (
+    <div style={panelStyle}>
+      <div style={{ fontWeight: 600, marginBottom: 12 }}>Auto Layout + libavoid</div>
+
+      <div style={{ fontWeight: 500, marginBottom: 8, fontSize: 12, color: "#888" }}>Layout Engine</div>
+      <div style={rowStyle}>
+        <label>Algorithm</label>
+        <select
+          value={settings.layoutAlgorithm}
+          onChange={(e) => onLayoutChange("layoutAlgorithm", e.target.value)}
+          style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #ccc" }}
+        >
+          <option value="elk">ELK (Layered)</option>
+          <option value="dagre">Dagre</option>
+          <option value="d3-hierarchy">D3 Hierarchy</option>
+        </select>
+      </div>
+      <div style={rowStyle}>
+        <label>Direction</label>
+        <select
+          value={settings.layoutDirection}
+          onChange={(e) => onLayoutChange("layoutDirection", e.target.value)}
+          style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #ccc" }}
+        >
+          <option value="LR">Left to Right</option>
+          <option value="TB">Top to Bottom</option>
+          <option value="RL">Right to Left</option>
+          <option value="BT">Bottom to Top</option>
+        </select>
+      </div>
+      <div style={rowStyle}>
+        <label>Node Spacing</label>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="range"
+            min={20}
+            max={120}
+            value={settings.layoutSpacing}
+            onChange={(e) => onLayoutChange("layoutSpacing", Number(e.target.value))}
+            style={{ width: 100 }}
+          />
+          <span style={{ minWidth: 28, textAlign: "right" }}>{settings.layoutSpacing}</span>
+        </div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <button
+          onClick={onReLayout}
+          style={{
+            padding: "6px 16px",
+            borderRadius: 6,
+            border: "1px solid #818cf8",
+            background: "#818cf8",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+            width: "100%",
+          }}
+        >
+          Re-Layout
+        </button>
+      </div>
+
+      <div style={{ fontWeight: 500, marginBottom: 8, fontSize: 12, color: "#888" }}>libavoid Routing</div>
+      {sliders.map(({ key, label, min, max }) => (
+        <div key={key} style={rowStyle}>
+          <label>{label}</label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              value={settings[key]}
+              onChange={(e) => onChange(key, Number(e.target.value))}
+              style={{ width: 100 }}
+            />
+            <span style={{ minWidth: 28, textAlign: "right" }}>{settings[key]}</span>
+          </div>
+        </div>
+      ))}
+      <div style={rowStyle}>
+        <label>Auto Best Side</label>
+        <div style={{ display: "flex", gap: 4 }}>
+          {[true, false].map((val) => (
+            <button
+              key={String(val)}
+              onClick={() => onChange("autoBestSideConnection", val)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 4,
+                border: "1px solid #ccc",
+                background: settings.autoBestSideConnection === val ? "#333" : "#fff",
+                color: settings.autoBestSideConnection === val ? "#fff" : "#333",
+                cursor: "pointer",
+              }}
+            >
+              {val ? "True" : "False"}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AutoLayoutFlow() {
+  const [nodes, setNodes] = useState<Node[]>(elkNodes);
+  const [edges, setEdges] = useState<Edge[]>(elkEdges);
+  const [settings, setSettings] = useState<AutoLayoutSettings>({
+    edgeRounding: 8,
+    edgeToEdgeSpacing: 10,
+    edgeToNodeSpacing: 12,
+    diagramGridSize: 0,
+    shouldSplitEdgesNearHandle: true,
+    autoBestSideConnection: true,
+    resolveCollisions: false,
+    layoutDirection: "LR",
+    layoutAlgorithm: "elk",
+    layoutSpacing: 60,
+  });
+
+  const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
+  const didLayout = useRef(false);
+
+  const applyLayout = useCallback(
+    async (currentNodes: Node[]) => {
+      const laid = await runAutoLayout(currentNodes, edges, {
+        direction: settings.layoutDirection,
+        algorithm: settings.layoutAlgorithm,
+        spacing: settings.layoutSpacing,
+      });
+      setNodes(laid);
+      requestAnimationFrame(() => resetRouting());
+    },
+    [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting]
+  );
+
+  // Run layout on mount and when layout settings change
+  useEffect(() => {
+    if (!didLayout.current) {
+      const timer = setTimeout(() => {
+        didLayout.current = true;
+        applyLayout(nodes);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    applyLayout(nodes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<Node>[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds));
+      updateRoutingOnNodesChange(changes);
+    },
+    [updateRoutingOnNodesChange]
+  );
+
+  const deferredReset = useCallback(() => {
+    requestAnimationFrame(() => resetRouting());
+  }, [resetRouting]);
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange<Edge>[]) => {
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+      const needsReset = changes.some((c) => c.type === "add" || c.type === "remove");
+      if (needsReset) deferredReset();
+    },
+    [deferredReset]
+  );
+
+  const onConnect = useCallback(
+    (params: Connection) => {
+      setEdges((eds) => addEdge({ ...params, type: "avoidNodes" }, eds));
+      deferredReset();
+    },
+    [deferredReset]
+  );
+
+  const onSettingChange = useCallback(
+    (key: string, value: number | boolean) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  const onLayoutChange = useCallback(
+    (key: string, value: string | number) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  const onReLayout = useCallback(() => {
+    applyLayout(nodes);
+  }, [applyLayout, nodes]);
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      onNodeDragStop={deferredReset}
+      edgeTypes={edgeTypes}
+      defaultEdgeOptions={{ type: "avoidNodes" }}
+      fitView
+      proOptions={proOptions}
+      selectNodesOnDrag={false}
+    >
+      <Background />
+      <Controls />
+      <MiniMap />
+      <AutoLayoutSettingsPanel
+        settings={settings}
+        onChange={onSettingChange}
+        onLayoutChange={onLayoutChange}
+        onReLayout={onReLayout}
+      />
+    </ReactFlow>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState<ExampleTab>("basic");
 
   return (
     <ReactFlowProvider key={tab}>
-      <Flow tab={tab} />
+      {tab === "elk" ? <AutoLayoutFlow /> : <Flow tab={tab} />}
       <div style={tabBarStyle}>
         <TabButton label="Basic" active={tab === "basic"} onClick={() => setTab("basic")} />
         <TabButton label="Groups" active={tab === "group"} onClick={() => setTab("group")} />
         <TabButton label="Subflows" active={tab === "subflows"} onClick={() => setTab("subflows")} />
+        <TabButton label="Auto Layout" active={tab === "elk"} onClick={() => setTab("elk")} />
       </div>
     </ReactFlowProvider>
   );
