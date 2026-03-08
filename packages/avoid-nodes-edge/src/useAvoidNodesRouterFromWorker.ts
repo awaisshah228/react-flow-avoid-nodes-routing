@@ -25,6 +25,7 @@ export interface UseAvoidNodesRouterOptions {
   edgeRounding?: number;
   diagramGridSize?: number;
   shouldSplitEdgesNearHandle?: boolean;
+  autoBestSideConnection?: boolean;
 }
 
 export interface UseAvoidNodesRouterResult {
@@ -46,6 +47,7 @@ function toRouterOptions(opts?: UseAvoidNodesRouterOptions): AvoidRouterOptions 
     edgeRounding: opts?.edgeRounding,
     diagramGridSize: opts?.diagramGridSize,
     shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle,
+    autoBestSideConnection: opts?.autoBestSideConnection,
   };
 }
 
@@ -194,6 +196,7 @@ export function useAvoidNodesRouterFromWorker(
     opts.edgeRounding,
     opts.diagramGridSize,
     opts.shouldSplitEdgesNearHandle,
+    opts.autoBestSideConnection,
     sendReset,
   ]);
 

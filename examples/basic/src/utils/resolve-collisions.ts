@@ -49,7 +49,28 @@ export interface ResolveCollisionsOptions {
 }
 
 /**
+ * Checks if node A is an ancestor of node B (walks up B's parentId chain).
+ */
+function isAncestor(ancestorId: string, nodeId: string, nodeById: Map<string, Node>): boolean {
+  let current = nodeById.get(nodeId);
+  while (current?.parentId) {
+    if (current.parentId === ancestorId) return true;
+    current = nodeById.get(current.parentId);
+  }
+  return false;
+}
+
+/**
+ * Returns true if two nodes share an ancestor-descendant relationship.
+ */
+function areRelated(a: Node, b: Node, nodeById: Map<string, Node>): boolean {
+  return isAncestor(a.id, b.id, nodeById) || isAncestor(b.id, a.id, nodeById);
+}
+
+/**
  * Pushes overlapping nodes apart along the axis with smallest overlap.
+ * Only resolves collisions between unrelated sibling nodes — never between
+ * a node and its parent/ancestor group, which would destroy subflow layouts.
  * Returns new node array with updated positions (only moved nodes are cloned).
  */
 export function resolveCollisions(
@@ -62,50 +83,130 @@ export function resolveCollisions(
   const threshold = options.overlapThreshold ?? OVERLAP_THRESHOLD;
   const margin = options.margin ?? COLLISION_MARGIN;
 
-  const boxes = buildBoxes(nodes, margin);
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
 
-  for (let iter = 0; iter <= maxIter; iter++) {
-    let moved = false;
+  // Group non-group nodes by parentId so we only compare siblings
+  const siblingGroups = new Map<string, Node[]>();
+  for (const node of nodes) {
+    // Skip group nodes — they are containers, not collision candidates
+    if (node.type === "group") continue;
+    const key = node.parentId ?? "__root__";
+    if (!siblingGroups.has(key)) siblingGroups.set(key, []);
+    siblingGroups.get(key)!.push(node);
+  }
 
-    for (let i = 0; i < boxes.length; i++) {
-      for (let j = i + 1; j < boxes.length; j++) {
-        const A = boxes[i];
-        const B = boxes[j];
+  // Also resolve collisions between root-level groups and root-level non-group nodes
+  const rootNodes = nodes.filter((n) => !n.parentId);
 
-        const cax = A.x + A.width * 0.5;
-        const cay = A.y + A.height * 0.5;
-        const cbx = B.x + B.width * 0.5;
-        const cby = B.y + B.height * 0.5;
+  const movedNodes = new Map<string, { x: number; y: number }>();
 
-        const dx = cax - cbx;
-        const dy = cay - cby;
+  // Resolve within each sibling group
+  for (const [, siblings] of siblingGroups) {
+    if (siblings.length < 2) continue;
+    const boxes = buildBoxes(siblings, margin);
 
-        const px = (A.width + B.width) * 0.5 - Math.abs(dx);
-        const py = (A.height + B.height) * 0.5 - Math.abs(dy);
+    for (let iter = 0; iter <= maxIter; iter++) {
+      let moved = false;
 
-        if (px > threshold && py > threshold) {
-          A.moved = B.moved = moved = true;
-          if (px < py) {
-            const half = (px / 2) * (dx > 0 ? 1 : -1);
-            A.x += half;
-            B.x -= half;
-          } else {
-            const half = (py / 2) * (dy > 0 ? 1 : -1);
-            A.y += half;
-            B.y -= half;
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const A = boxes[i];
+          const B = boxes[j];
+
+          const cax = A.x + A.width * 0.5;
+          const cay = A.y + A.height * 0.5;
+          const cbx = B.x + B.width * 0.5;
+          const cby = B.y + B.height * 0.5;
+
+          const dx = cax - cbx;
+          const dy = cay - cby;
+
+          const px = (A.width + B.width) * 0.5 - Math.abs(dx);
+          const py = (A.height + B.height) * 0.5 - Math.abs(dy);
+
+          if (px > threshold && py > threshold) {
+            A.moved = B.moved = moved = true;
+            if (px < py) {
+              const half = (px / 2) * (dx > 0 ? 1 : -1);
+              A.x += half;
+              B.x -= half;
+            } else {
+              const half = (py / 2) * (dy > 0 ? 1 : -1);
+              A.y += half;
+              B.y -= half;
+            }
           }
         }
       }
+
+      if (!moved) break;
     }
 
-    if (!moved) break;
+    for (const box of boxes) {
+      if (box.moved) {
+        movedNodes.set(box.node.id, { x: box.x + margin, y: box.y + margin });
+      }
+    }
   }
 
-  return boxes.map((box) =>
-    box.moved
-      ? { ...box.node, position: { x: box.x + margin, y: box.y + margin } }
-      : box.node
-  );
+  // Resolve root-level nodes (including groups) against each other,
+  // but skip ancestor-descendant pairs
+  if (rootNodes.length >= 2) {
+    const boxes = buildBoxes(rootNodes, margin);
+
+    for (let iter = 0; iter <= maxIter; iter++) {
+      let moved = false;
+
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const A = boxes[i];
+          const B = boxes[j];
+
+          // Never push related nodes apart
+          if (areRelated(A.node, B.node, nodeById)) continue;
+
+          const cax = A.x + A.width * 0.5;
+          const cay = A.y + A.height * 0.5;
+          const cbx = B.x + B.width * 0.5;
+          const cby = B.y + B.height * 0.5;
+
+          const dx = cax - cbx;
+          const dy = cay - cby;
+
+          const px = (A.width + B.width) * 0.5 - Math.abs(dx);
+          const py = (A.height + B.height) * 0.5 - Math.abs(dy);
+
+          if (px > threshold && py > threshold) {
+            A.moved = B.moved = moved = true;
+            if (px < py) {
+              const half = (px / 2) * (dx > 0 ? 1 : -1);
+              A.x += half;
+              B.x -= half;
+            } else {
+              const half = (py / 2) * (dy > 0 ? 1 : -1);
+              A.y += half;
+              B.y -= half;
+            }
+          }
+        }
+      }
+
+      if (!moved) break;
+    }
+
+    for (const box of boxes) {
+      if (box.moved) {
+        movedNodes.set(box.node.id, { x: box.x + margin, y: box.y + margin });
+      }
+    }
+  }
+
+  if (movedNodes.size === 0) return nodes;
+
+  return nodes.map((node) => {
+    const pos = movedNodes.get(node.id);
+    return pos ? { ...node, position: pos } : node;
+  });
 }
 
 /**

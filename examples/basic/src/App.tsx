@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
@@ -17,13 +18,29 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { nodes as defaultNodes, edges as defaultEdges } from "./initialElements";
+import { basicNodes, basicEdges } from "./initialElementsBasic";
+import { nodes as groupNodes, edges as groupEdges } from "./initialElements";
+import { subflowNodes, subflowEdges } from "./initialElementsSubflows";
 import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
 import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { resolveCollisions } from "./utils/resolve-collisions";
+import GroupNode from "./GroupNode";
+import SelectedNodesToolbar from "./SelectedNodesToolbar";
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
+const nodeTypes = { group: GroupNode };
 const proOptions: ProOptions = { hideAttribution: true };
+
+type ExampleTab = "basic" | "group" | "subflows";
+
+const tabBarStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 12,
+  left: 12,
+  display: "flex",
+  gap: 4,
+  zIndex: 10,
+};
 
 const panelStyle: React.CSSProperties = {
   position: "absolute",
@@ -51,6 +68,8 @@ type Settings = {
   edgeToNodeSpacing: number;
   diagramGridSize: number;
   shouldSplitEdgesNearHandle: boolean;
+  autoBestSideConnection: boolean;
+  resolveCollisions: boolean;
 };
 
 function SettingsPanel({
@@ -107,22 +126,105 @@ function SettingsPanel({
           ))}
         </div>
       </div>
+      <div style={rowStyle}>
+        <label>Resolve Collisions</label>
+        <div style={{ display: "flex", gap: 4 }}>
+          {[true, false].map((val) => (
+            <button
+              key={String(val)}
+              onClick={() => onChange("resolveCollisions", val)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 4,
+                border: "1px solid #ccc",
+                background: settings.resolveCollisions === val ? "#333" : "#fff",
+                color: settings.resolveCollisions === val ? "#fff" : "#333",
+                cursor: "pointer",
+              }}
+            >
+              {val ? "True" : "False"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={rowStyle}>
+        <label>Auto Best Side</label>
+        <div style={{ display: "flex", gap: 4 }}>
+          {[true, false].map((val) => (
+            <button
+              key={String(val)}
+              onClick={() => onChange("autoBestSideConnection", val)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 4,
+                border: "1px solid #ccc",
+                background: settings.autoBestSideConnection === val ? "#333" : "#fff",
+                color: settings.autoBestSideConnection === val ? "#fff" : "#333",
+                cursor: "pointer",
+              }}
+            >
+              {val ? "True" : "False"}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-function Flow() {
-  const [nodes, setNodes] = useState<Node[]>(defaultNodes);
-  const [edges, setEdges] = useState<Edge[]>(defaultEdges);
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "6px 16px",
+        borderRadius: 6,
+        border: "1px solid #ccc",
+        background: active ? "#333" : "#fff",
+        color: active ? "#fff" : "#333",
+        cursor: "pointer",
+        fontSize: 13,
+        fontWeight: active ? 600 : 400,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+const initialNodesForTab: Record<ExampleTab, Node[]> = {
+  basic: basicNodes,
+  group: groupNodes,
+  subflows: subflowNodes,
+};
+const initialEdgesForTab: Record<ExampleTab, Edge[]> = {
+  basic: basicEdges,
+  group: groupEdges,
+  subflows: subflowEdges,
+};
+
+function Flow({ tab }: { tab: ExampleTab }) {
+  const hasGroups = tab === "group" || tab === "subflows";
+  const [nodes, setNodes] = useState<Node[]>(initialNodesForTab[tab]);
+  const [edges, setEdges] = useState<Edge[]>(initialEdgesForTab[tab]);
   const [settings, setSettings] = useState<Settings>({
     edgeRounding: 8,
     edgeToEdgeSpacing: 10,
     edgeToNodeSpacing: 12,
     diagramGridSize: 0,
     shouldSplitEdgesNearHandle: true,
+    autoBestSideConnection: true,
+    resolveCollisions: true,
   });
 
-  // Worker-based routing: edges route around nodes on a separate thread (WASM loads in worker only)
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
 
   const onNodesChange = useCallback(
@@ -133,7 +235,6 @@ function Flow() {
     [updateRoutingOnNodesChange]
   );
 
-  // Defer resetRouting so React flushes state and the worker reads fresh nodes/edges.
   const deferredReset = useCallback(() => {
     requestAnimationFrame(() => resetRouting());
   }, [resetRouting]);
@@ -141,7 +242,6 @@ function Flow() {
   const onEdgesChange = useCallback(
     (changes: EdgeChange<Edge>[]) => {
       setEdges((eds) => applyEdgeChanges(changes, eds));
-      // Re-route when edges are added/removed
       const needsReset = changes.some((c) => c.type === "add" || c.type === "remove");
       if (needsReset) deferredReset();
     },
@@ -151,23 +251,19 @@ function Flow() {
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => addEdge({ ...params, type: "avoidNodes" }, eds));
-      // Trigger re-route so the new edge avoids nodes
       deferredReset();
     },
     [deferredReset]
   );
 
-  // Resolve node-on-node collisions after drag ends
   const onNodeDragStop = useCallback(
     (_event: React.MouseEvent, _node: Node) => {
-      setNodes((nds) => {
-        const resolved = resolveCollisions(nds, { margin: 20, maxIterations: 50 });
-        return resolved;
-      });
-      // Re-route edges after collision resolution
+      if (settings.resolveCollisions) {
+        setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+      }
       deferredReset();
     },
-    [deferredReset]
+    [deferredReset, settings.resolveCollisions]
   );
 
   const onSettingChange = useCallback(
@@ -185,23 +281,35 @@ function Flow() {
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
       onNodeDragStop={onNodeDragStop}
+      nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={{ type: "avoidNodes" }}
       fitView
       proOptions={proOptions}
+      selectNodesOnDrag={false}
+      multiSelectionKeyCode="Shift"
+      selectionMode={SelectionMode.Partial}
     >
       <Background />
       <Controls />
       <MiniMap />
+      {hasGroups && <SelectedNodesToolbar />}
       <SettingsPanel settings={settings} onChange={onSettingChange} />
     </ReactFlow>
   );
 }
 
 export default function App() {
+  const [tab, setTab] = useState<ExampleTab>("basic");
+
   return (
-    <ReactFlowProvider>
-      <Flow />
+    <ReactFlowProvider key={tab}>
+      <Flow tab={tab} />
+      <div style={tabBarStyle}>
+        <TabButton label="Basic" active={tab === "basic"} onClick={() => setTab("basic")} />
+        <TabButton label="Groups" active={tab === "group"} onClick={() => setTab("group")} />
+        <TabButton label="Subflows" active={tab === "subflows"} onClick={() => setTab("subflows")} />
+      </div>
     </ReactFlowProvider>
   );
 }

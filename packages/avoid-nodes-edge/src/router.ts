@@ -16,6 +16,7 @@ export type AvoidRouterOptions = {
   edgeRounding?: number;             // Corner radius for rounded orthogonal bends
   diagramGridSize?: number;          // Snap edge waypoints to a grid of this size
   shouldSplitEdgesNearHandle?: boolean; // Fixed-point handles (edges share exit point, then diverge)
+  autoBestSideConnection?: boolean;    // Auto-detect best handle side based on relative node positions
 };
 
 // Which side of a node a handle (connection point) is on
@@ -132,55 +133,67 @@ export class AvoidRouter {
   // 5. Run the routing algorithm (processTransaction)
   // 6. Extract the routed polyline for each edge and convert to SVG path
   // 7. Clean up all libavoid objects to free WASM memory
+  // Find all ancestor group IDs for a node
+  private getAncestorGroups(nodeId: string, nodeById: Map<string, Node>): Set<string> {
+    const groups = new Set<string>();
+    let current = nodeById.get(nodeId);
+    while (current?.parentId) {
+      const parent = nodeById.get(current.parentId);
+      if (parent?.type === "group") groups.add(parent.id);
+      current = parent;
+    }
+    return groups;
+  }
+
+  private getBestSides(
+    srcBounds: { x: number; y: number; w: number; h: number },
+    tgtBounds: { x: number; y: number; w: number; h: number }
+  ): { sourcePos: HandlePosition; targetPos: HandlePosition } {
+    const srcCx = srcBounds.x + srcBounds.w / 2;
+    const srcCy = srcBounds.y + srcBounds.h / 2;
+    const tgtCx = tgtBounds.x + tgtBounds.w / 2;
+    const tgtCy = tgtBounds.y + tgtBounds.h / 2;
+    const dx = tgtCx - srcCx;
+    const dy = tgtCy - srcCy;
+
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      return dx >= 0
+        ? { sourcePos: "right", targetPos: "left" }
+        : { sourcePos: "left", targetPos: "right" };
+    } else {
+      return dy >= 0
+        ? { sourcePos: "bottom", targetPos: "top" }
+        : { sourcePos: "top", targetPos: "bottom" };
+    }
+  }
+
   routeAll(nodes: Node[], edges: Edge[], options?: AvoidRouterOptions): Record<string, AvoidRoute> {
     const Avoid = AvoidRouter.lib;
     if (!Avoid) return {};
 
-    // Extract options with defaults
     const shapeBuffer = options?.shapeBufferDistance ?? 8;
     const idealNudging = options?.idealNudgingDistance ?? 10;
     const cornerRadius = options?.edgeRounding ?? 0;
     const gridSize = options?.diagramGridSize ?? 0;
     const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
-    // Filter out group nodes — they aren't obstacles, only containers.
-    // Build lookup maps for quick node access and pre-compute absolute bounds.
-    const obstacleNodes = nodes.filter((n) => n.type !== "group");
+    const autoBestSide = options?.autoBestSideConnection ?? false;
     const nodeById = new Map(nodes.map((n) => [n.id, n]));
-    const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, this.getNodeBoundsAbsolute(n, nodeById)]));
+    const nonGroupNodes = nodes.filter((n) => n.type !== "group");
+    const groupNodes = nodes.filter((n) => n.type === "group");
 
-    // Create the libavoid orthogonal router and configure its routing parameters
-    const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
-      setRoutingParameter: (p: number, v: number) => void;
-      setRoutingOption: (o: number, v: boolean) => void;
-      processTransaction: () => void;
-      deleteConnector: (c: unknown) => void;
-      deleteShape: (s: unknown) => void;
-    };
-    router.setRoutingParameter(Avoid.shapeBufferDistance, shapeBuffer);
-    router.setRoutingParameter(Avoid.idealNudgingDistance, idealNudging);
-    router.setRoutingOption(Avoid.nudgeOrthogonalSegmentsConnectedToShapes, true);
-    router.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
-    router.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
+    // Batch edges by which groups they pass through
+    const edgeBatches = new Map<string, Edge[]>();
+    for (const edge of edges) {
+      const srcGroups = this.getAncestorGroups(edge.source, nodeById);
+      const tgtGroups = this.getAncestorGroups(edge.target, nodeById);
+      const passthrough = new Set([...srcGroups, ...tgtGroups]);
+      const key = [...passthrough].sort().join(",") || "__none__";
+      if (!edgeBatches.has(key)) edgeBatches.set(key, []);
+      edgeBatches.get(key)!.push(edge);
+    }
 
-    // Pin class IDs — each represents a connection point position on a shape.
-    // These IDs are used by libavoid to know where edges can attach to nodes.
-    const PIN_CENTER = 1;
-    const PIN_TOP = 2;
-    const PIN_BOTTOM = 3;
-    const PIN_LEFT = 4;
-    const PIN_RIGHT = 5;
-
-    // Maps handle positions (top/bottom/left/right) to their pin class IDs
-    const pinIdForPosition: Record<HandlePosition, number> = {
-      top: PIN_TOP,
-      bottom: PIN_BOTTOM,
-      left: PIN_LEFT,
-      right: PIN_RIGHT,
-    };
-
-    // Defines the proportional x/y position on the shape boundary and
-    // the allowed connection direction for each pin type.
-    // e.g. PIN_TOP is at (0.5, 0) = top-center, only allows upward connections.
+    const PIN_CENTER = 1, PIN_TOP = 2, PIN_BOTTOM = 3, PIN_LEFT = 4, PIN_RIGHT = 5;
+    const pinIdForPosition: Record<HandlePosition, number> = { top: PIN_TOP, bottom: PIN_BOTTOM, left: PIN_LEFT, right: PIN_RIGHT };
     const pinProportions: Record<number, { x: number; y: number; dir: number }> = {
       [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
       [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
@@ -189,117 +202,122 @@ export class AvoidRouter {
       [PIN_RIGHT]: { x: 1, y: 0.5, dir: Avoid.ConnDirRight },
     };
 
-    // Register each obstacle node as a rectangle shape in the libavoid router.
-    // For each shape, create 5 connection pins (center, top, bottom, left, right)
-    // so edges can attach at any of these positions.
-    const shapeRefMap = new Map<string, unknown>();
-    const shapeRefs: { ref: unknown }[] = [];
-    for (const node of obstacleNodes) {
-      const b = nodeBounds.get(node.id)!;
-      const topLeft = new Avoid.Point(b.x, b.y);
-      const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
-      const rect = new Avoid.Rectangle(topLeft, bottomRight);
-      const shapeRef = new Avoid.ShapeRef(router, rect);
-      shapeRefs.push({ ref: shapeRef });
-      shapeRefMap.set(node.id, shapeRef);
+    const result: Record<string, AvoidRoute> = {};
 
-      for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
-        const p = pinProportions[pinId];
-        const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
-        pin.setExclusive(false);
+    for (const [key, batchEdges] of edgeBatches) {
+      const passthroughGroupIds = key === "__none__" ? new Set<string>() : new Set(key.split(","));
+      const obstacleNodes = [
+        ...nonGroupNodes,
+        ...groupNodes.filter((g) => !passthroughGroupIds.has(g.id)),
+      ];
+      const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, this.getNodeBoundsAbsolute(n, nodeById)]));
+
+      const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
+        setRoutingParameter: (p: number, v: number) => void;
+        setRoutingOption: (o: number, v: boolean) => void;
+        processTransaction: () => void;
+        deleteConnector: (c: unknown) => void;
+        deleteShape: (s: unknown) => void;
+      };
+      router.setRoutingParameter(Avoid.shapeBufferDistance, shapeBuffer);
+      router.setRoutingParameter(Avoid.idealNudgingDistance, idealNudging);
+      router.setRoutingOption(Avoid.nudgeOrthogonalSegmentsConnectedToShapes, true);
+      router.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
+      router.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
+
+      const shapeRefMap = new Map<string, unknown>();
+      const shapeRefs: { ref: unknown }[] = [];
+      for (const node of obstacleNodes) {
+        const b = nodeBounds.get(node.id)!;
+        const topLeft = new Avoid.Point(b.x, b.y);
+        const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
+        const rect = new Avoid.Rectangle(topLeft, bottomRight);
+        const shapeRef = new Avoid.ShapeRef(router, rect);
+        shapeRefs.push({ ref: shapeRef });
+        shapeRefMap.set(node.id, shapeRef);
+        for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
+          const p = pinProportions[pinId];
+          const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
+          pin.setExclusive(false);
+        }
       }
-    }
 
-    // Create a connector (ConnRef) for each edge.
-    // Determines the source and target connection points:
-    // - If the node is an obstacle, connect via its shape pin (attached routing)
-    // - If the node is a group (not an obstacle), connect via a free-floating point
-    // Each connector is set to orthogonal routing (right-angle segments only).
-    const connRefs: { edgeId: string; connRef: unknown }[] = [];
-    for (const edge of edges) {
-      const src = nodeById.get(edge.source);
-      const tgt = nodeById.get(edge.target);
-      if (!src || !tgt) continue;
-
-      const srcShapeRef = shapeRefMap.get(edge.source);
-      const tgtShapeRef = shapeRefMap.get(edge.target);
-
-      const sourcePos = this.getHandlePosition(src, "source");
-      const targetPos = this.getHandlePosition(tgt, "target");
-
-      let srcEnd: unknown;
-      let tgtEnd: unknown;
-
-      if (splitNearHandle) {
-        // Shape-pin ConnEnds: libavoid spreads edges along the node border.
-        if (srcShapeRef) {
-          const pinId = pinIdForPosition[sourcePos] ?? PIN_CENTER;
-          srcEnd = new Avoid.ConnEnd(srcShapeRef, pinId);
+      const connRefs: { edgeId: string; connRef: unknown }[] = [];
+      for (const edge of batchEdges) {
+        const src = nodeById.get(edge.source);
+        const tgt = nodeById.get(edge.target);
+        if (!src || !tgt) continue;
+        const srcShapeRef = shapeRefMap.get(edge.source);
+        const tgtShapeRef = shapeRefMap.get(edge.target);
+        let sourcePos = this.getHandlePosition(src, "source");
+        let targetPos = this.getHandlePosition(tgt, "target");
+        if (autoBestSide) {
+          const sb = this.getNodeBoundsAbsolute(src, nodeById);
+          const tb = this.getNodeBoundsAbsolute(tgt, nodeById);
+          const best = this.getBestSides(sb, tb);
+          sourcePos = best.sourcePos;
+          targetPos = best.targetPos;
+        }
+        let srcEnd: unknown;
+        let tgtEnd: unknown;
+        if (splitNearHandle) {
+          if (srcShapeRef) {
+            srcEnd = new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER);
+          } else {
+            const sb = this.getNodeBoundsAbsolute(src, nodeById);
+            const sourcePt = this.getHandlePoint(sb, sourcePos);
+            srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+          }
+          if (tgtShapeRef) {
+            tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
+          } else {
+            const tb = this.getNodeBoundsAbsolute(tgt, nodeById);
+            const targetPt = this.getHandlePoint(tb, targetPos);
+            tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
+          }
         } else {
           const sb = this.getNodeBoundsAbsolute(src, nodeById);
           const sourcePt = this.getHandlePoint(sb, sourcePos);
           srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
-        }
-        if (tgtShapeRef) {
-          const pinId = pinIdForPosition[targetPos] ?? PIN_CENTER;
-          tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinId);
-        } else {
           const tb = this.getNodeBoundsAbsolute(tgt, nodeById);
           const targetPt = this.getHandlePoint(tb, targetPos);
           tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
         }
-      } else {
-        // Fixed-point ConnEnds at the exact node border: edges share a common
-        // exit point then diverge via libavoid nudging.
-        const sb = this.getNodeBoundsAbsolute(src, nodeById);
-        const sourcePt = this.getHandlePoint(sb, sourcePos);
-        srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
-        const tb = this.getNodeBoundsAbsolute(tgt, nodeById);
-        const targetPt = this.getHandlePoint(tb, targetPos);
-        tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
+        const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
+        connRef.setRoutingType(Avoid.ConnType_Orthogonal);
+        connRefs.push({ edgeId: edge.id, connRef });
       }
 
-      const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
-      connRef.setRoutingType(Avoid.ConnType_Orthogonal);
-      connRefs.push({ edgeId: edge.id, connRef });
-    }
-
-    // Run the libavoid routing algorithm — this computes all edge paths at once,
-    // finding routes that avoid overlapping with obstacle shapes.
-    try {
-      router.processTransaction();
-    } catch {
-      this.cleanup(router, connRefs, shapeRefs);
-      return {};
-    }
-
-    // Extract the computed route for each edge.
-    // Convert the polyline (list of waypoints) into an SVG path string,
-    // and pick the midpoint as the label position.
-    const result: Record<string, AvoidRoute> = {};
-    for (const { edgeId, connRef } of connRefs) {
       try {
-        const route = (connRef as { displayRoute(): { size(): number; get_ps(i: number): { x: number; y: number } } }).displayRoute();
-        const size = route.size();
-        if (size < 2) continue;
-
-        let points: { x: number; y: number }[] = [];
-        for (let i = 0; i < size; i++) {
-          const p = route.get_ps(i);
-          points.push({ x: p.x, y: p.y });
-        }
-
-        const path = this.polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
-        const mid = Math.floor(points.length / 2);
-        const midP = points[mid];
-        const labelP = gridSize > 0 ? this.snapToGrid(midP.x, midP.y, gridSize) : midP;
-        result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
+        router.processTransaction();
       } catch {
-        // skip
+        this.cleanup(router, connRefs, shapeRefs);
+        continue;
       }
+
+      for (const { edgeId, connRef } of connRefs) {
+        try {
+          const route = (connRef as { displayRoute(): { size(): number; get_ps(i: number): { x: number; y: number } } }).displayRoute();
+          const size = route.size();
+          if (size < 2) continue;
+          const points: { x: number; y: number }[] = [];
+          for (let i = 0; i < size; i++) {
+            const p = route.get_ps(i);
+            points.push({ x: p.x, y: p.y });
+          }
+          const path = this.polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
+          const mid = Math.floor(points.length / 2);
+          const midP = points[mid];
+          const labelP = gridSize > 0 ? this.snapToGrid(midP.x, midP.y, gridSize) : midP;
+          result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
+        } catch {
+          // skip
+        }
+      }
+
+      this.cleanup(router, connRefs, shapeRefs);
     }
 
-    this.cleanup(router, connRefs, shapeRefs);
     return result;
   }
 

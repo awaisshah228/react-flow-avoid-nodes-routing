@@ -1,153 +1,99 @@
 import type { Node, Edge } from "@xyflow/react";
 
-export const nodes: Node[] = [
-  // ── Input ──
+export const basicNodes: Node[] = [
   {
     id: "start",
     data: { label: "Start" },
-    position: { x: 0, y: 200 },
+    position: { x: 0, y: 150 },
     style: { width: 150, height: 50, border: "2px solid #f472b6", borderRadius: 12 },
-  },
-
-  // ── Group A: Processing ──
-  {
-    id: "group-processing",
-    data: { label: "Processing" },
-    type: "group",
-    position: { x: 250, y: 0 },
-    style: {
-      width: 380,
-      height: 420,
-      backgroundColor: "rgba(59, 130, 246, 0.05)",
-      border: "1px dashed #3b82f6",
-      borderRadius: 8,
-    },
   },
   {
     id: "validate",
     data: { label: "Validate" },
-    position: { x: 50, y: 50 },
-    parentId: "group-processing",
-    expandParent: true,
+    position: { x: 300, y: 0 },
     style: { width: 140, height: 50 },
   },
   {
     id: "transform",
     data: { label: "Transform" },
-    position: { x: 50, y: 170 },
-    parentId: "group-processing",
-    expandParent: true,
+    position: { x: 300, y: 150 },
     style: { width: 140, height: 50 },
   },
   {
     id: "enrich",
     data: { label: "Enrich" },
-    position: { x: 50, y: 290 },
-    parentId: "group-processing",
-    expandParent: true,
+    position: { x: 300, y: 300 },
     style: { width: 140, height: 50, border: "2px solid #f472b6", borderRadius: 12 },
   },
-
-  // ── Blocker (forces routing around it) ──
   {
     id: "blocker1",
     data: { label: "Blocker" },
-    position: { x: 680, y: 80 },
+    position: { x: 530, y: 60 },
     style: { width: 120, height: 50, opacity: 0.6 },
   },
-
-  // ── Group B: Output ──
-  {
-    id: "group-output",
-    data: { label: "Output" },
-    type: "group",
-    position: { x: 940, y: 20 },
-    style: {
-      width: 340,
-      height: 460,
-      backgroundColor: "rgba(34, 197, 94, 0.05)",
-      border: "1px dashed #22c55e",
-      borderRadius: 8,
-    },
-  },
-  {
-    id: "success",
-    data: { label: "Success" },
-    position: { x: 50, y: 50 },
-    parentId: "group-output",
-    expandParent: true,
-    style: { width: 140, height: 50, border: "2px solid #4ade80", borderRadius: 12 },
-  },
-  {
-    id: "retry",
-    data: { label: "Retry" },
-    position: { x: 50, y: 190 },
-    parentId: "group-output",
-    expandParent: true,
-    style: { width: 140, height: 50, border: "2px solid #facc15", borderRadius: 12 },
-  },
-  {
-    id: "error",
-    data: { label: "Error" },
-    position: { x: 50, y: 330 },
-    parentId: "group-output",
-    expandParent: true,
-    style: { width: 140, height: 50, border: "2px solid #f87171", borderRadius: 12 },
-  },
-
-  // ── Middle row ──
   {
     id: "merge",
     data: { label: "Merge" },
-    position: { x: 680, y: 200 },
+    position: { x: 700, y: 75 },
     style: { width: 140, height: 50 },
   },
   {
     id: "decision",
     data: { label: "Decision" },
-    position: { x: 680, y: 320 },
+    position: { x: 700, y: 225 },
     style: { width: 140, height: 50 },
   },
-
-  // ── Side branch ──
+  {
+    id: "blocker2",
+    data: { label: "Cache" },
+    position: { x: 900, y: 150 },
+    style: { width: 100, height: 50, opacity: 0.6 },
+  },
+  {
+    id: "success",
+    data: { label: "Success" },
+    position: { x: 1100, y: 50 },
+    style: { width: 140, height: 50, border: "2px solid #4ade80", borderRadius: 12 },
+  },
+  {
+    id: "retry",
+    data: { label: "Retry" },
+    position: { x: 1100, y: 200 },
+    style: { width: 140, height: 50, border: "2px solid #facc15", borderRadius: 12 },
+  },
+  {
+    id: "error",
+    data: { label: "Error" },
+    position: { x: 1100, y: 350 },
+    style: { width: 140, height: 50, border: "2px solid #f87171", borderRadius: 12 },
+  },
   {
     id: "log",
     data: { label: "Log" },
-    position: { x: 500, y: 480 },
+    position: { x: 500, y: 400 },
     style: { width: 120, height: 50 },
   },
   {
     id: "notify",
     data: { label: "Notify" },
-    position: { x: 750, y: 480 },
+    position: { x: 750, y: 400 },
     style: { width: 120, height: 50 },
   },
 ];
 
-export const edges: Edge[] = [
-  // Start fans out to 3 targets inside the Processing group
+export const basicEdges: Edge[] = [
   { id: "e-start-validate", source: "start", target: "validate", type: "avoidNodes", data: { label: "check" } },
   { id: "e-start-transform", source: "start", target: "transform", type: "avoidNodes", data: { label: "process" } },
   { id: "e-start-enrich", source: "start", target: "enrich", type: "avoidNodes", data: { label: "extend" } },
-
-  // Processing → Merge (fan-in, edges cross group boundary)
   { id: "e-validate-merge", source: "validate", target: "merge", type: "avoidNodes" },
   { id: "e-transform-merge", source: "transform", target: "merge", type: "avoidNodes" },
-
-  // Processing → Decision
   { id: "e-enrich-decision", source: "enrich", target: "decision", type: "avoidNodes" },
   { id: "e-transform-decision", source: "transform", target: "decision", type: "avoidNodes" },
-
-  // Merge/Decision → Output group children (routes must go around blocker1)
   { id: "e-merge-success", source: "merge", target: "success", type: "avoidNodes", data: { label: "ok" } },
   { id: "e-decision-success", source: "decision", target: "success", type: "avoidNodes" },
   { id: "e-decision-retry", source: "decision", target: "retry", type: "avoidNodes", data: { label: "retry" } },
   { id: "e-decision-error", source: "decision", target: "error", type: "avoidNodes", data: { label: "fail" } },
-
-  // Retry loops back into Processing group
   { id: "e-retry-transform", source: "retry", target: "transform", type: "avoidNodes", data: { label: "again", strokeDasharray: "5,5" } },
-
-  // Side branch from group child to outside nodes
   { id: "e-enrich-log", source: "enrich", target: "log", type: "avoidNodes" },
   { id: "e-log-notify", source: "log", target: "notify", type: "avoidNodes" },
   { id: "e-notify-error", source: "notify", target: "error", type: "avoidNodes" },
