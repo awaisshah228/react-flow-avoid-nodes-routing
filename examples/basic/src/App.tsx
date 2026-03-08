@@ -427,6 +427,27 @@ function AutoLayoutSettingsPanel({
           ))}
         </div>
       </div>
+      <div style={rowStyle}>
+        <label>Resolve Collisions</label>
+        <div style={{ display: "flex", gap: 4 }}>
+          {[true, false].map((val) => (
+            <button
+              key={String(val)}
+              onClick={() => onChange("resolveCollisions", val)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 4,
+                border: "1px solid #ccc",
+                background: settings.resolveCollisions === val ? "#333" : "#fff",
+                color: settings.resolveCollisions === val ? "#fff" : "#333",
+                cursor: "pointer",
+              }}
+            >
+              {val ? "True" : "False"}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -505,6 +526,16 @@ function AutoLayoutFlow() {
     [deferredReset]
   );
 
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      if (settings.resolveCollisions) {
+        setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+      }
+      deferredReset();
+    },
+    [deferredReset, settings.resolveCollisions]
+  );
+
   const onSettingChange = useCallback(
     (key: string, value: number | boolean) => {
       setSettings((prev) => ({ ...prev, [key]: value }));
@@ -530,7 +561,7 @@ function AutoLayoutFlow() {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
-      onNodeDragStop={deferredReset}
+      onNodeDragStop={onNodeDragStop}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={{ type: "avoidNodes" }}
       fitView

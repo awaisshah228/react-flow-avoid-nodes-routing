@@ -441,6 +441,63 @@ import type {
 } from 'avoid-nodes-edge';
 ```
 
+## Using with Auto-Layout (ELK, Dagre, D3 Hierarchy)
+
+`avoid-nodes-edge` pairs perfectly with auto-layout libraries — use a layout algorithm to **position nodes**, then libavoid to **route edges** with obstacle avoidance. The [basic example](https://avoid-nodes-pro-example.vercel.app) includes an "Auto Layout" tab demonstrating all three.
+
+```tsx
+import { runAutoLayout } from './utils/auto-layout'; // ELK, Dagre, or D3 Hierarchy
+import { useAvoidNodesRouterFromWorker } from 'avoid-nodes-edge';
+
+function AutoLayoutFlow() {
+  const [nodes, setNodes] = useState(initialNodes);
+  const [edges, setEdges] = useState(initialEdges);
+
+  const { resetRouting, updateRoutingOnNodesChange } =
+    useAvoidNodesRouterFromWorker(nodes, edges, {
+      edgeRounding: 8,
+      autoBestSideConnection: true,
+    });
+
+  // 1. Run layout algorithm to position nodes
+  const applyLayout = async () => {
+    const laid = await runAutoLayout(nodes, edges, {
+      algorithm: 'elk',       // or 'dagre' or 'd3-hierarchy'
+      direction: 'LR',        // TB, LR, RL, BT
+      spacing: 60,
+    });
+    setNodes(laid);
+    requestAnimationFrame(() => resetRouting()); // 2. Re-route edges
+  };
+
+  // Nodes are still draggable — edges re-route on drag
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={(changes) => {
+        setNodes((nds) => applyNodeChanges(changes, nds));
+        updateRoutingOnNodesChange(changes);
+      }}
+      edgeTypes={edgeTypes}
+      defaultEdgeOptions={{ type: 'avoidNodes' }}
+    />
+  );
+}
+```
+
+**Supported layout algorithms:**
+
+| Algorithm | Library | Best For |
+|---|---|---|
+| `elk` | [elkjs](https://www.npmjs.com/package/elkjs) | Layered/hierarchical diagrams |
+| `dagre` | [@dagrejs/dagre](https://www.npmjs.com/package/@dagrejs/dagre) | DAG layouts with rank ordering |
+| `d3-hierarchy` | [d3-hierarchy](https://www.npmjs.com/package/d3-hierarchy) | Tree structures |
+
+The key insight: layout algorithms position nodes but draw simple edges (straight lines or splines). By pairing them with libavoid, you get **auto-positioned nodes** with **orthogonal edges that avoid obstacles** — the best of both worlds.
+
+---
+
 ## Architecture
 
 ```
