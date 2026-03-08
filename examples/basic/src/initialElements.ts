@@ -1,4 +1,4 @@
-import type { Node, Edge } from "@xyflow/react";
+import { MarkerType, type Node, type Edge } from "@xyflow/react";
 
 export const nodes: Node[] = [
   // ── Input ──
@@ -138,7 +138,12 @@ const edgeColors: Record<string, string> = {
 };
 
 function e(id: string, source: string, target: string, extra?: Record<string, unknown>): Edge {
-  return { id, source, target, type: "avoidNodes", data: { strokeColor: edgeColors[source] ?? "#94a3b8", ...extra } };
+  const color = edgeColors[source] ?? "#94a3b8";
+  return {
+    id, source, target, type: "avoidNodes",
+    markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color },
+    data: { strokeColor: color, ...extra },
+  };
 }
 
 export const edges: Edge[] = [

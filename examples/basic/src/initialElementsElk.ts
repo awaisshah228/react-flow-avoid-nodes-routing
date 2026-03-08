@@ -1,4 +1,4 @@
-import type { Node, Edge } from "@xyflow/react";
+import { MarkerType, type Node, type Edge } from "@xyflow/react";
 
 /**
  * ELK + libavoid example: nodes have no manual positions —
@@ -102,7 +102,12 @@ const elkEdgeColors: Record<string, string> = {
 };
 
 function ee(id: string, source: string, target: string): Edge {
-  return { id, source, target, type: "avoidNodes", data: { strokeColor: elkEdgeColors[source] ?? "#94a3b8" } };
+  const color = elkEdgeColors[source] ?? "#94a3b8";
+  return {
+    id, source, target, type: "avoidNodes",
+    markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color },
+    data: { strokeColor: color },
+  };
 }
 
 export const elkEdges: Edge[] = [

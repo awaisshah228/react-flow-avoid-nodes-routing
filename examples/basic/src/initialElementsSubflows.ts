@@ -1,4 +1,4 @@
-import type { Node, Edge } from "@xyflow/react";
+import { MarkerType, type Node, type Edge } from "@xyflow/react";
 
 export const subflowNodes: Node[] = [
   {
@@ -97,7 +97,12 @@ const subflowEdgeColors: Record<string, string> = {
 };
 
 function se(id: string, source: string, target: string): Edge {
-  return { id, source, target, type: "avoidNodes", data: { strokeColor: subflowEdgeColors[source] ?? "#94a3b8" } };
+  const color = subflowEdgeColors[source] ?? "#94a3b8";
+  return {
+    id, source, target, type: "avoidNodes",
+    markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color },
+    data: { strokeColor: color },
+  };
 }
 
 export const subflowEdges: Edge[] = [
