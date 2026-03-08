@@ -35,7 +35,10 @@
       "Bash(npx turbo run build --force)",
       "Bash(npx vercel inspect --scope awaisshah228s-projects)",
       "Bash(npx turbo run build --filter=avoid-nodes-edge)",
-      "Bash(npx turbo run build --filter=avoid-nodes-edge --force)"
+      "Bash(npx turbo run build --filter=avoid-nodes-edge --force)",
+      "WebFetch(domain:avoid-nodes-pro-example.vercel.app)",
+      "WebFetch(domain:avoid-nodes-pro-example-g04tne7hg-awaisshah228s-projects.vercel.app)",
+      "Bash(npm publish --access public)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
