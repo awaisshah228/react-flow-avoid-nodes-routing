@@ -337,5 +337,5 @@ function Flow() {
 ## Dependencies
 
 - `@xyflow/react ^12.7.0` — React Flow v12
-- `libavoid-js ^0.5.0-beta.5` — Libavoid WASM port (orthogonal routing engine)
+- `libavoid-js0.4.5 ` — Libavoid WASM port (orthogonal routing engine)
 - `zustand ^5.0.10` — State management for routed paths
