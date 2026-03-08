@@ -22,10 +22,11 @@ import { basicNodes, basicEdges } from "./initialElementsBasic";
 import { nodes as groupNodes, edges as groupEdges } from "./initialElements";
 import { subflowNodes, subflowEdges } from "./initialElementsSubflows";
 import { elkNodes, elkEdges } from "./initialElementsElk";
+import { autoLayoutGroupNodes, autoLayoutGroupEdges } from "./initialElementsAutoLayoutGroups";
 import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
 import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { resolveCollisions } from "./utils/resolve-collisions";
-import { runAutoLayout, type LayoutDirection, type LayoutAlgorithmName } from "./utils/auto-layout";
+import { runAutoLayout, runAutoLayoutWithGroups, type LayoutDirection, type LayoutAlgorithmName } from "./utils/auto-layout";
 import GroupNode from "./GroupNode";
 import SelectedNodesToolbar from "./SelectedNodesToolbar";
 
@@ -33,7 +34,7 @@ const edgeTypes = { avoidNodes: AvoidNodesEdge };
 const nodeTypes = { group: GroupNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
-type ExampleTab = "basic" | "group" | "subflows" | "elk";
+type ExampleTab = "basic" | "group" | "subflows" | "elk" | "auto-layout-groups";
 
 const tabBarStyle: React.CSSProperties = {
   position: "absolute",
@@ -207,12 +208,14 @@ const initialNodesForTab: Record<ExampleTab, Node[]> = {
   group: groupNodes,
   subflows: subflowNodes,
   elk: elkNodes,
+  "auto-layout-groups": autoLayoutGroupNodes,
 };
 const initialEdgesForTab: Record<ExampleTab, Edge[]> = {
   basic: basicEdges,
   group: groupEdges,
   subflows: subflowEdges,
   elk: elkEdges,
+  "auto-layout-groups": autoLayoutGroupEdges,
 };
 
 function Flow({ tab }: { tab: ExampleTab }) {
@@ -581,17 +584,156 @@ function AutoLayoutFlow() {
   );
 }
 
+function AutoLayoutGroupsFlow() {
+  const [nodes, setNodes] = useState<Node[]>(autoLayoutGroupNodes);
+  const [edges, setEdges] = useState<Edge[]>(autoLayoutGroupEdges);
+  const [settings, setSettings] = useState<AutoLayoutSettings>({
+    edgeRounding: 8,
+    edgeToEdgeSpacing: 10,
+    edgeToNodeSpacing: 12,
+    diagramGridSize: 0,
+    shouldSplitEdgesNearHandle: true,
+    autoBestSideConnection: true,
+    resolveCollisions: false,
+    layoutDirection: "LR",
+    layoutAlgorithm: "elk",
+    layoutSpacing: 60,
+  });
+
+  const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
+  const didLayout = useRef(false);
+
+  const applyLayout = useCallback(
+    async (currentNodes: Node[]) => {
+      const laid = await runAutoLayoutWithGroups(currentNodes, edges, {
+        direction: settings.layoutDirection,
+        algorithm: settings.layoutAlgorithm,
+        spacing: settings.layoutSpacing,
+      });
+      setNodes(laid);
+      requestAnimationFrame(() => resetRouting());
+    },
+    [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting]
+  );
+
+  useEffect(() => {
+    if (!didLayout.current) {
+      const timer = setTimeout(() => {
+        didLayout.current = true;
+        applyLayout(nodes);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    applyLayout(nodes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<Node>[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds));
+      updateRoutingOnNodesChange(changes);
+    },
+    [updateRoutingOnNodesChange]
+  );
+
+  const deferredReset = useCallback(() => {
+    requestAnimationFrame(() => resetRouting());
+  }, [resetRouting]);
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange<Edge>[]) => {
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+      const needsReset = changes.some((c) => c.type === "add" || c.type === "remove");
+      if (needsReset) deferredReset();
+    },
+    [deferredReset]
+  );
+
+  const onConnect = useCallback(
+    (params: Connection) => {
+      setEdges((eds) => addEdge({ ...params, type: "avoidNodes" }, eds));
+      deferredReset();
+    },
+    [deferredReset]
+  );
+
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      if (settings.resolveCollisions) {
+        setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+      }
+      deferredReset();
+    },
+    [deferredReset, settings.resolveCollisions]
+  );
+
+  const onSettingChange = useCallback(
+    (key: string, value: number | boolean) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  const onLayoutChange = useCallback(
+    (key: string, value: string | number) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  const onReLayout = useCallback(() => {
+    applyLayout(nodes);
+  }, [applyLayout, nodes]);
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      onNodeDragStop={onNodeDragStop}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
+      defaultEdgeOptions={{ type: "avoidNodes" }}
+      fitView
+      proOptions={proOptions}
+      selectNodesOnDrag={false}
+    >
+      <Background />
+      <Controls />
+      <MiniMap />
+      <SelectedNodesToolbar />
+      <AutoLayoutSettingsPanel
+        settings={settings}
+        onChange={onSettingChange}
+        onLayoutChange={onLayoutChange}
+        onReLayout={onReLayout}
+      />
+    </ReactFlow>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState<ExampleTab>("basic");
 
+  const renderFlow = () => {
+    switch (tab) {
+      case "elk": return <AutoLayoutFlow />;
+      case "auto-layout-groups": return <AutoLayoutGroupsFlow />;
+      default: return <Flow tab={tab} />;
+    }
+  };
+
   return (
     <ReactFlowProvider key={tab}>
-      {tab === "elk" ? <AutoLayoutFlow /> : <Flow tab={tab} />}
+      {renderFlow()}
       <div style={tabBarStyle}>
         <TabButton label="Basic" active={tab === "basic"} onClick={() => setTab("basic")} />
         <TabButton label="Groups" active={tab === "group"} onClick={() => setTab("group")} />
         <TabButton label="Subflows" active={tab === "subflows"} onClick={() => setTab("subflows")} />
         <TabButton label="Auto Layout" active={tab === "elk"} onClick={() => setTab("elk")} />
+        <TabButton label="Auto Layout + Groups" active={tab === "auto-layout-groups"} onClick={() => setTab("auto-layout-groups")} />
       </div>
     </ReactFlowProvider>
   );

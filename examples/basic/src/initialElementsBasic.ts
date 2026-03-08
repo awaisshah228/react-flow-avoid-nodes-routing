@@ -1,3 +1,4 @@
+
 import type { Node, Edge } from "@xyflow/react";
 
 export const basicNodes: Node[] = [
@@ -81,20 +82,37 @@ export const basicNodes: Node[] = [
   },
 ];
 
+// Highly distinct edge colors per source node
+const basicEdgeColors: Record<string, string> = {
+  "start":     "#e91e63", // magenta
+  "validate":  "#2196f3", // blue
+  "transform": "#ff9800", // orange
+  "enrich":    "#9c27b0", // purple
+  "merge":     "#009688", // teal
+  "decision":  "#f44336", // red
+  "retry":     "#4caf50", // green
+  "log":       "#00bcd4", // cyan
+  "notify":    "#795548", // brown
+};
+
+function be(id: string, source: string, target: string, extra?: Record<string, unknown>): Edge {
+  return { id, source, target, type: "avoidNodes", data: { strokeColor: basicEdgeColors[source] ?? "#94a3b8", ...extra } };
+}
+
 export const basicEdges: Edge[] = [
-  { id: "e-start-validate", source: "start", target: "validate", type: "avoidNodes", data: { label: "check" } },
-  { id: "e-start-transform", source: "start", target: "transform", type: "avoidNodes", data: { label: "process" } },
-  { id: "e-start-enrich", source: "start", target: "enrich", type: "avoidNodes", data: { label: "extend" } },
-  { id: "e-validate-merge", source: "validate", target: "merge", type: "avoidNodes" },
-  { id: "e-transform-merge", source: "transform", target: "merge", type: "avoidNodes" },
-  { id: "e-enrich-decision", source: "enrich", target: "decision", type: "avoidNodes" },
-  { id: "e-transform-decision", source: "transform", target: "decision", type: "avoidNodes" },
-  { id: "e-merge-success", source: "merge", target: "success", type: "avoidNodes", data: { label: "ok" } },
-  { id: "e-decision-success", source: "decision", target: "success", type: "avoidNodes" },
-  { id: "e-decision-retry", source: "decision", target: "retry", type: "avoidNodes", data: { label: "retry" } },
-  { id: "e-decision-error", source: "decision", target: "error", type: "avoidNodes", data: { label: "fail" } },
-  { id: "e-retry-transform", source: "retry", target: "transform", type: "avoidNodes", data: { label: "again", strokeDasharray: "5,5" } },
-  { id: "e-enrich-log", source: "enrich", target: "log", type: "avoidNodes" },
-  { id: "e-log-notify", source: "log", target: "notify", type: "avoidNodes" },
-  { id: "e-notify-error", source: "notify", target: "error", type: "avoidNodes" },
+  be("e-start-validate", "start", "validate", { label: "check" }),
+  be("e-start-transform", "start", "transform", { label: "process" }),
+  be("e-start-enrich", "start", "enrich", { label: "extend" }),
+  be("e-validate-merge", "validate", "merge"),
+  be("e-transform-merge", "transform", "merge"),
+  be("e-enrich-decision", "enrich", "decision"),
+  be("e-transform-decision", "transform", "decision"),
+  be("e-merge-success", "merge", "success", { label: "ok" }),
+  be("e-decision-success", "decision", "success"),
+  be("e-decision-retry", "decision", "retry", { label: "retry" }),
+  be("e-decision-error", "decision", "error", { label: "fail" }),
+  be("e-retry-transform", "retry", "transform", { label: "again", strokeDasharray: "5,5" }),
+  be("e-enrich-log", "enrich", "log"),
+  be("e-log-notify", "log", "notify"),
+  be("e-notify-error", "notify", "error"),
 ];

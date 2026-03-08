@@ -87,11 +87,24 @@ export const subflowNodes: Node[] = [
   },
 ];
 
+// Highly distinct edge colors per source node
+const subflowEdgeColors: Record<string, string> = {
+  "1":   "#e91e63", // magenta
+  "2a":  "#2196f3", // blue
+  "3":   "#ff9800", // orange
+  "4a":  "#009688", // teal
+  "4b1": "#9c27b0", // purple
+};
+
+function se(id: string, source: string, target: string): Edge {
+  return { id, source, target, type: "avoidNodes", data: { strokeColor: subflowEdgeColors[source] ?? "#94a3b8" } };
+}
+
 export const subflowEdges: Edge[] = [
-  { id: "e1-3", source: "1", target: "3", type: "avoidNodes" },
-  { id: "e2a-4a", source: "2a", target: "4a", type: "avoidNodes" },
-  { id: "e3-4b", source: "3", target: "4b1", type: "avoidNodes" },
-  { id: "e4a-4b1", source: "4a", target: "4b1", type: "avoidNodes" },
-  { id: "e4a-4b2", source: "4a", target: "4b2", type: "avoidNodes" },
-  { id: "e4b1-4b2", source: "4b1", target: "4b2", type: "avoidNodes" },
+  se("e1-3", "1", "3"),
+  se("e2a-4a", "2a", "4a"),
+  se("e3-4b", "3", "4b1"),
+  se("e4a-4b1", "4a", "4b1"),
+  se("e4a-4b2", "4a", "4b2"),
+  se("e4b1-4b2", "4b1", "4b2"),
 ];

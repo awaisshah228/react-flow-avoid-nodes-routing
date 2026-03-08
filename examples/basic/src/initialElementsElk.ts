@@ -86,21 +86,40 @@ export const elkNodes: Node[] = [
   },
 ];
 
+// Highly distinct edge colors per source node
+const elkEdgeColors: Record<string, string> = {
+  "input":     "#e91e63", // magenta
+  "auth":      "#2196f3", // blue
+  "validate":  "#ff9800", // orange
+  "fetch-db":  "#009688", // teal
+  "fetch-api": "#9c27b0", // purple
+  "cache":     "#4caf50", // green
+  "merge":     "#f44336", // red
+  "transform": "#00bcd4", // cyan
+  "filter":    "#ff5722", // deep-orange
+  "format":    "#3f51b5", // indigo
+  "log":       "#795548", // brown
+};
+
+function ee(id: string, source: string, target: string): Edge {
+  return { id, source, target, type: "avoidNodes", data: { strokeColor: elkEdgeColors[source] ?? "#94a3b8" } };
+}
+
 export const elkEdges: Edge[] = [
-  { id: "e-input-auth", source: "input", target: "auth", type: "avoidNodes" },
-  { id: "e-input-validate", source: "input", target: "validate", type: "avoidNodes" },
-  { id: "e-auth-fetch-db", source: "auth", target: "fetch-db", type: "avoidNodes" },
-  { id: "e-auth-fetch-api", source: "auth", target: "fetch-api", type: "avoidNodes" },
-  { id: "e-fetch-db-cache", source: "fetch-db", target: "cache", type: "avoidNodes" },
-  { id: "e-fetch-db-merge", source: "fetch-db", target: "merge", type: "avoidNodes" },
-  { id: "e-fetch-api-merge", source: "fetch-api", target: "merge", type: "avoidNodes" },
-  { id: "e-cache-merge", source: "cache", target: "merge", type: "avoidNodes" },
-  { id: "e-validate-merge", source: "validate", target: "merge", type: "avoidNodes" },
-  { id: "e-merge-transform", source: "merge", target: "transform", type: "avoidNodes" },
-  { id: "e-transform-filter", source: "transform", target: "filter", type: "avoidNodes" },
-  { id: "e-transform-log", source: "transform", target: "log", type: "avoidNodes" },
-  { id: "e-filter-format", source: "filter", target: "format", type: "avoidNodes" },
-  { id: "e-format-respond", source: "format", target: "respond", type: "avoidNodes" },
-  { id: "e-merge-error", source: "merge", target: "error", type: "avoidNodes" },
-  { id: "e-log-respond", source: "log", target: "respond", type: "avoidNodes" },
+  ee("e-input-auth", "input", "auth"),
+  ee("e-input-validate", "input", "validate"),
+  ee("e-auth-fetch-db", "auth", "fetch-db"),
+  ee("e-auth-fetch-api", "auth", "fetch-api"),
+  ee("e-fetch-db-cache", "fetch-db", "cache"),
+  ee("e-fetch-db-merge", "fetch-db", "merge"),
+  ee("e-fetch-api-merge", "fetch-api", "merge"),
+  ee("e-cache-merge", "cache", "merge"),
+  ee("e-validate-merge", "validate", "merge"),
+  ee("e-merge-transform", "merge", "transform"),
+  ee("e-transform-filter", "transform", "filter"),
+  ee("e-transform-log", "transform", "log"),
+  ee("e-filter-format", "filter", "format"),
+  ee("e-format-respond", "format", "respond"),
+  ee("e-merge-error", "merge", "error"),
+  ee("e-log-respond", "log", "respond"),
 ];
