@@ -17,7 +17,7 @@ import '@xyflow/react/dist/style.css';
 
 import { useAvoidNodesRouterFromWorker } from 'avoid-nodes-edge';
 import { AvoidNodesEdge } from 'avoid-nodes-edge/edge';
-import { resolveCollisions } from './utils/resolve-collisions';
+import { resolveCollisions } from 'avoid-nodes-edge/resolve-collisions';
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
 
