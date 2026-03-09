@@ -20,6 +20,7 @@ import "@xyflow/react/dist/style.css";
 
 import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
+import { resolveCollisions } from "../utils/resolve-collisions";
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
 
@@ -39,10 +40,8 @@ function FlowInner() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-  const { updateRoutingOnNodesChange, resetRouting, resolveCollisionsInWorker } =
-    useAvoidNodesRouterFromWorker(nodes, edges, {
-      onCollisionsResolved: (resolvedNodes) => setNodes(resolvedNodes),
-    });
+  const { updateRoutingOnNodesChange, resetRouting } =
+    useAvoidNodesRouterFromWorker(nodes, edges, {});
 
   const deferredReset = useCallback(() => {
     requestAnimationFrame(() => resetRouting());
@@ -75,10 +74,11 @@ function FlowInner() {
   );
 
   const onNodeDragStop = useCallback(
-    () => {
-      resolveCollisionsInWorker({ margin: 20, maxIterations: 50 });
+    (_event: React.MouseEvent, _node: Node) => {
+      setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+      deferredReset();
     },
-    [resolveCollisionsInWorker]
+    [deferredReset]
   );
 
   return (
