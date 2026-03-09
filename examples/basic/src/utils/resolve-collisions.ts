@@ -1,4 +1,4 @@
-/**
+  /**
  * Node collision resolution — pushes overlapping nodes apart iteratively.
  * Based on the algorithm from React Flow's node-collisions example.
  * @see https://reactflow.dev/examples/layout/node-collisions
