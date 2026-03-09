@@ -4,7 +4,9 @@
   "packageManager": "yarn@1.22.22",
   "workspaces": [
     "packages/*",
-    "examples/*"
+    "examples/basic",
+    "examples/collision-demo",
+    "examples/remote-basic"
   ],
   "scripts": {
     "build": "turbo run build",
