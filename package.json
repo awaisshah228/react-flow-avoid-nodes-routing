@@ -4,7 +4,7 @@
   "packageManager": "yarn@1.22.22",
   "workspaces": [
     "packages/*",
-    "examples/basic",
+    "examples/demo",
     "examples/collision-demo",
     "examples/remote-basic"
   ],
