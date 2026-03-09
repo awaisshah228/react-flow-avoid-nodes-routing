@@ -48,9 +48,9 @@ const tabBarStyle: React.CSSProperties = {
   zIndex: 20,
 };
 
-const panelStyle: React.CSSProperties = {
+const getPanelStyle = (): React.CSSProperties => ({
   position: "absolute",
-  top: 90,
+  top: isMobile() ? 90 : 12,
   right: 12,
   background: "rgba(255, 255, 255, 0.95)",
   borderRadius: 8,
@@ -59,10 +59,10 @@ const panelStyle: React.CSSProperties = {
   zIndex: 10,
   minWidth: 240,
   maxWidth: "min(320px, calc(100vw - 24px))",
-  maxHeight: "calc(100vh - 80px)",
+  maxHeight: isMobile() ? "calc(100vh - 100px)" : "calc(100vh - 40px)",
   overflowY: "auto",
   fontSize: 13,
-};
+});
 
 const rowStyle: React.CSSProperties = {
   display: "flex",
@@ -70,6 +70,8 @@ const rowStyle: React.CSSProperties = {
   alignItems: "center",
   marginBottom: 10,
 };
+
+const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
 type Settings = {
   edgeRounding: number;
@@ -88,7 +90,7 @@ function SettingsPanel({
   settings: Settings;
   onChange: (key: string, value: number | boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => !isMobile());
   const sliders = [
     { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
     { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
@@ -97,13 +99,13 @@ function SettingsPanel({
   ] as const;
 
   return (
-    <div style={panelStyle}>
+    <div style={getPanelStyle()}>
       <div
         style={{ fontWeight: 600, marginBottom: open ? 12 : 0, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", userSelect: "none" }}
         onClick={() => setOpen(!open)}
       >
-        <span>Settings</span>
-        <span style={{ fontSize: 11, color: "#888" }}>{open ? "Hide" : "Show"}</span>
+        <span>{open ? "Settings" : "\u2699\uFE0F Settings"}</span>
+        <span style={{ fontSize: 11, color: "#888" }}>{open ? "\u2715" : ""}</span>
       </div>
       {open && (
         <>
@@ -348,16 +350,16 @@ function AutoLayoutSettingsPanel({
     { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
   ] as const;
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => !isMobile());
 
   return (
-    <div style={panelStyle}>
+    <div style={getPanelStyle()}>
       <div
         style={{ fontWeight: 600, marginBottom: open ? 12 : 0, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", userSelect: "none" }}
         onClick={() => setOpen(!open)}
       >
-        <span>Auto Layout + libavoid</span>
-        <span style={{ fontSize: 11, color: "#888" }}>{open ? "Hide" : "Show"}</span>
+        <span>{open ? "Auto Layout + libavoid" : "\u2699\uFE0F Auto Layout"}</span>
+        <span style={{ fontSize: 11, color: "#888" }}>{open ? "\u2715" : ""}</span>
       </div>
       {!open ? null : (
       <>
