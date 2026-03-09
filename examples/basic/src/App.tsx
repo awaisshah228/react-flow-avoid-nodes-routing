@@ -482,7 +482,8 @@ function AutoLayoutFlow() {
         spacing: settings.layoutSpacing,
       });
       setNodes(laid);
-      requestAnimationFrame(() => resetRouting());
+      // Double rAF ensures React has flushed state and node measurements are up-to-date
+      requestAnimationFrame(() => requestAnimationFrame(() => resetRouting()));
     },
     [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting]
   );
@@ -611,7 +612,8 @@ function AutoLayoutGroupsFlow() {
         spacing: settings.layoutSpacing,
       });
       setNodes(laid);
-      requestAnimationFrame(() => resetRouting());
+      // Double rAF ensures React has flushed state and node measurements are up-to-date
+      requestAnimationFrame(() => requestAnimationFrame(() => resetRouting()));
     },
     [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting]
   );

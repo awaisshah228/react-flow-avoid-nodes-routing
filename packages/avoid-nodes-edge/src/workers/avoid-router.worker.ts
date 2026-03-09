@@ -223,18 +223,6 @@ function polylineToPath(
 }
 
 
-// Find all ancestor group IDs for a node (walks up parentId chain)
-function getAncestorGroups(nodeId: string, nodeById: Map<string, FlowNode>): Set<string> {
-  const groups = new Set<string>();
-  let current = nodeById.get(nodeId);
-  while (current?.parentId) {
-    const parent = nodeById.get(current.parentId);
-    if (parent?.type === "group") groups.add(parent.id);
-    current = parent;
-  }
-  return groups;
-}
-
 function getBestSides(
   srcBounds: { x: number; y: number; w: number; h: number },
   tgtBounds: { x: number; y: number; w: number; h: number }
@@ -270,157 +258,130 @@ function routeAll(nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOpt
   const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
   const autoBestSide = options?.autoBestSideConnection ?? false;
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const nonGroupNodes = nodes.filter((n) => n.type !== "group");
-  const groupNodes = nodes.filter((n) => n.type === "group");
-
-  // For each edge, find which groups it needs to pass through
-  // (groups containing its source or target). Edges are batched
-  // by their passthrough set so each batch gets its own router
-  // with the right obstacles.
-  const edgePassthroughKey = new Map<string, string>();
-  const edgeBatches = new Map<string, FlowEdge[]>();
-
-  for (const edge of edges) {
-    const srcGroups = getAncestorGroups(edge.source, nodeById);
-    const tgtGroups = getAncestorGroups(edge.target, nodeById);
-    // Union of groups that this edge needs to pass through
-    const passthrough = new Set([...srcGroups, ...tgtGroups]);
-    const key = [...passthrough].sort().join(",") || "__none__";
-    edgePassthroughKey.set(edge.id, key);
-    if (!edgeBatches.has(key)) edgeBatches.set(key, []);
-    edgeBatches.get(key)!.push(edge);
-  }
+  // Only non-group nodes are obstacles — groups are transparent containers
+  // so all edges route in a single pass with correct edge-to-edge spacing.
+  const obstacleNodes = nodes.filter((n) => n.type !== "group");
 
   const result: Record<string, AvoidRoute> = {};
 
-  // Route each batch with its own obstacle set
-  for (const [key, batchEdges] of edgeBatches) {
-    const passthroughGroupIds = key === "__none__" ? new Set<string>() : new Set(key.split(","));
+  const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]));
 
-    // Obstacles = all non-group nodes + group nodes that this batch does NOT pass through
-    const obstacleNodes = [
-      ...nonGroupNodes,
-      ...groupNodes.filter((g) => !passthroughGroupIds.has(g.id)),
-    ];
-    const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]));
+  const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
+    setRoutingParameter: (p: number, v: number) => void;
+    setRoutingOption: (o: number, v: boolean) => void;
+    processTransaction: () => void;
+    deleteConnector: (c: unknown) => void;
+    deleteShape: (s: unknown) => void;
+  };
+  router.setRoutingParameter(Avoid.shapeBufferDistance, shapeBuffer);
+  router.setRoutingParameter(Avoid.idealNudgingDistance, idealNudging);
+  router.setRoutingOption(Avoid.nudgeOrthogonalSegmentsConnectedToShapes, true);
+  router.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
+  router.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
 
-    const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
-      setRoutingParameter: (p: number, v: number) => void;
-      setRoutingOption: (o: number, v: boolean) => void;
-      processTransaction: () => void;
-      deleteConnector: (c: unknown) => void;
-      deleteShape: (s: unknown) => void;
-    };
-    router.setRoutingParameter(Avoid.shapeBufferDistance, shapeBuffer);
-    router.setRoutingParameter(Avoid.idealNudgingDistance, idealNudging);
-    router.setRoutingOption(Avoid.nudgeOrthogonalSegmentsConnectedToShapes, true);
-    router.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
-    router.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
+  const PIN_CENTER = 1, PIN_TOP = 2, PIN_BOTTOM = 3, PIN_LEFT = 4, PIN_RIGHT = 5;
+  const pinIdForPosition: Record<HandlePosition, number> = { top: PIN_TOP, bottom: PIN_BOTTOM, left: PIN_LEFT, right: PIN_RIGHT };
+  const pinProportions: Record<number, { x: number; y: number; dir: number }> = {
+    [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
+    [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
+    [PIN_BOTTOM]: { x: 0.5, y: 1, dir: Avoid.ConnDirDown },
+    [PIN_LEFT]: { x: 0, y: 0.5, dir: Avoid.ConnDirLeft },
+    [PIN_RIGHT]: { x: 1, y: 0.5, dir: Avoid.ConnDirRight },
+  };
 
-    const PIN_CENTER = 1, PIN_TOP = 2, PIN_BOTTOM = 3, PIN_LEFT = 4, PIN_RIGHT = 5;
-    const pinIdForPosition: Record<HandlePosition, number> = { top: PIN_TOP, bottom: PIN_BOTTOM, left: PIN_LEFT, right: PIN_RIGHT };
-    const pinProportions: Record<number, { x: number; y: number; dir: number }> = {
-      [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
-      [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
-      [PIN_BOTTOM]: { x: 0.5, y: 1, dir: Avoid.ConnDirDown },
-      [PIN_LEFT]: { x: 0, y: 0.5, dir: Avoid.ConnDirLeft },
-      [PIN_RIGHT]: { x: 1, y: 0.5, dir: Avoid.ConnDirRight },
-    };
-
-    const shapeRefMap = new Map<string, unknown>();
-    const shapeRefs: { ref: unknown }[] = [];
-    for (const node of obstacleNodes) {
-      const b = nodeBounds.get(node.id)!;
-      const topLeft = new Avoid.Point(b.x, b.y);
-      const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
-      const rect = new Avoid.Rectangle(topLeft, bottomRight);
-      const shapeRef = new Avoid.ShapeRef(router, rect);
-      shapeRefs.push({ ref: shapeRef });
-      shapeRefMap.set(node.id, shapeRef);
-      for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
-        const p = pinProportions[pinId];
-        const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
-        pin.setExclusive(false);
-      }
+  const shapeRefMap = new Map<string, unknown>();
+  const shapeRefs: { ref: unknown }[] = [];
+  for (const node of obstacleNodes) {
+    const b = nodeBounds.get(node.id)!;
+    const topLeft = new Avoid.Point(b.x, b.y);
+    const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
+    const rect = new Avoid.Rectangle(topLeft, bottomRight);
+    const shapeRef = new Avoid.ShapeRef(router, rect);
+    shapeRefs.push({ ref: shapeRef });
+    shapeRefMap.set(node.id, shapeRef);
+    for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
+      const p = pinProportions[pinId];
+      const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
+      pin.setExclusive(false);
     }
+  }
 
-    const connRefs: { edgeId: string; connRef: unknown }[] = [];
-    for (const edge of batchEdges) {
-      const src = nodeById.get(edge.source);
-      const tgt = nodeById.get(edge.target);
-      if (!src || !tgt) continue;
-      const srcShapeRef = shapeRefMap.get(edge.source);
-      const tgtShapeRef = shapeRefMap.get(edge.target);
-      let sourcePos = getHandlePosition(src, "source");
-      let targetPos = getHandlePosition(tgt, "target");
-      if (autoBestSide) {
-        const sb = getNodeBoundsAbsolute(src, nodeById);
-        const tb = getNodeBoundsAbsolute(tgt, nodeById);
-        const best = getBestSides(sb, tb);
-        sourcePos = best.sourcePos;
-        targetPos = best.targetPos;
-      }
-      let srcEnd: unknown;
-      let tgtEnd: unknown;
-      if (splitNearHandle) {
-        if (srcShapeRef) {
-          srcEnd = new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER);
-        } else {
-          const sb = getNodeBoundsAbsolute(src, nodeById);
-          const sourcePt = getHandlePoint(sb, sourcePos);
-          srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
-        }
-        if (tgtShapeRef) {
-          tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
-        } else {
-          const tb = getNodeBoundsAbsolute(tgt, nodeById);
-          const targetPt = getHandlePoint(tb, targetPos);
-          tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
-        }
+  const connRefs: { edgeId: string; connRef: unknown }[] = [];
+  for (const edge of edges) {
+    const src = nodeById.get(edge.source);
+    const tgt = nodeById.get(edge.target);
+    if (!src || !tgt) continue;
+    const srcShapeRef = shapeRefMap.get(edge.source);
+    const tgtShapeRef = shapeRefMap.get(edge.target);
+    let sourcePos = getHandlePosition(src, "source");
+    let targetPos = getHandlePosition(tgt, "target");
+    if (autoBestSide) {
+      const sb = getNodeBoundsAbsolute(src, nodeById);
+      const tb = getNodeBoundsAbsolute(tgt, nodeById);
+      const best = getBestSides(sb, tb);
+      sourcePos = best.sourcePos;
+      targetPos = best.targetPos;
+    }
+    let srcEnd: unknown;
+    let tgtEnd: unknown;
+    if (splitNearHandle) {
+      if (srcShapeRef) {
+        srcEnd = new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER);
       } else {
         const sb = getNodeBoundsAbsolute(src, nodeById);
         const sourcePt = getHandlePoint(sb, sourcePos);
         srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+      }
+      if (tgtShapeRef) {
+        tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
+      } else {
         const tb = getNodeBoundsAbsolute(tgt, nodeById);
         const targetPt = getHandlePoint(tb, targetPos);
         tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
       }
-      const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
-      connRef.setRoutingType(Avoid.ConnType_Orthogonal);
-      connRefs.push({ edgeId: edge.id, connRef });
+    } else {
+      const sb = getNodeBoundsAbsolute(src, nodeById);
+      const sourcePt = getHandlePoint(sb, sourcePos);
+      srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+      const tb = getNodeBoundsAbsolute(tgt, nodeById);
+      const targetPt = getHandlePoint(tb, targetPos);
+      tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
     }
+    const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
+    connRef.setRoutingType(Avoid.ConnType_Orthogonal);
+    connRefs.push({ edgeId: edge.id, connRef });
+  }
 
-    try {
-      router.processTransaction();
-    } catch {
-      for (const { connRef } of connRefs) try { router.deleteConnector(connRef); } catch { /* */ }
-      for (const { ref } of shapeRefs) try { router.deleteShape(ref); } catch { /* */ }
-      continue;
-    }
-
-    for (const { edgeId, connRef } of connRefs) {
-      try {
-        const route = (connRef as { displayRoute(): { size(): number; get_ps(i: number): { x: number; y: number } } }).displayRoute();
-        const size = route.size();
-        if (size < 2) continue;
-        const points: { x: number; y: number }[] = [];
-        for (let i = 0; i < size; i++) {
-          const p = route.get_ps(i);
-          points.push({ x: p.x, y: p.y });
-        }
-        const path = polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
-        const mid = Math.floor(points.length / 2);
-        const midP = points[mid];
-        const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
-        result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
-      } catch {
-        // skip
-      }
-    }
-
+  try {
+    router.processTransaction();
+  } catch {
     for (const { connRef } of connRefs) try { router.deleteConnector(connRef); } catch { /* */ }
     for (const { ref } of shapeRefs) try { router.deleteShape(ref); } catch { /* */ }
+    return result;
   }
+
+  for (const { edgeId, connRef } of connRefs) {
+    try {
+      const route = (connRef as { displayRoute(): { size(): number; get_ps(i: number): { x: number; y: number } } }).displayRoute();
+      const size = route.size();
+      if (size < 2) continue;
+      const points: { x: number; y: number }[] = [];
+      for (let i = 0; i < size; i++) {
+        const p = route.get_ps(i);
+        points.push({ x: p.x, y: p.y });
+      }
+      const path = polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
+      const mid = Math.floor(points.length / 2);
+      const midP = points[mid];
+      const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
+      result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
+    } catch {
+      // skip
+    }
+  }
+
+  for (const { connRef } of connRefs) try { router.deleteConnector(connRef); } catch { /* */ }
+  for (const { ref } of shapeRefs) try { router.deleteShape(ref); } catch { /* */ }
 
   return result;
 }
