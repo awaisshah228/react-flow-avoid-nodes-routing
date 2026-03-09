@@ -5,6 +5,7 @@
 
 import type { Node, Edge } from "@xyflow/react";
 import type { AvoidRoute, AvoidRouterOptions } from "./routing-core";
+import type { ResolveCollisionsOptions } from "./resolve-collisions";
 
 /** Commands the main thread can send to the worker */
 export type AvoidRouterWorkerCommand =
@@ -14,9 +15,11 @@ export type AvoidRouterWorkerCommand =
   | { command: "add"; cell: Node | Edge }
   | { command: "route"; nodes: Node[]; edges: Edge[]; options?: AvoidRouterOptions }
   | { command: "updateNodes"; nodes: Node[] }
+  | { command: "resolveCollisions"; nodes: Node[]; options?: ResolveCollisionsOptions }
   | { command: "close" };
 
 /** Messages the worker sends back to the main thread */
 export type AvoidRouterWorkerResponse =
   | { command: "loaded"; success: boolean }
-  | { command: "routed"; routes: Record<string, AvoidRoute> };
+  | { command: "routed"; routes: Record<string, AvoidRoute> }
+  | { command: "collisionsResolved"; nodes: Node[] };

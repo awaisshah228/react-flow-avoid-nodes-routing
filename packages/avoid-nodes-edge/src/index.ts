@@ -31,3 +31,6 @@ export {
   SHOULD_START_EDGE_AT_HANDLE_BORDER,
   EDGE_BORDER_RADIUS,
 } from "./constants";
+
+export { resolveCollisions, hasOverlap } from "./resolve-collisions";
+export type { ResolveCollisionsOptions } from "./resolve-collisions";

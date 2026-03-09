@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Node } from "@xyflow/react";
 import type { AvoidRouterWorkerCommand } from "./worker-messages";
 import type { AvoidRoute } from "./router";
 import { attachAvoidWorkerListener } from "./worker-listener";
@@ -7,6 +8,7 @@ export interface UseAvoidWorkerOptions {
   create?: boolean;
   onRouted?: (routes: Record<string, AvoidRoute>) => void;
   onLoaded?: (success: boolean) => void;
+  onCollisionsResolved?: (nodes: Node[]) => void;
 }
 
 export interface UseAvoidWorkerResult {
@@ -24,8 +26,12 @@ export function useAvoidWorker(options?: UseAvoidWorkerOptions): UseAvoidWorkerR
   const [workerLoaded, setWorkerLoaded] = useState(false);
   const onRoutedRef = useRef(options?.onRouted);
   const onLoadedRef = useRef(options?.onLoaded);
-  onRoutedRef.current = options?.onRouted;
-  onLoadedRef.current = options?.onLoaded;
+  const onCollisionsResolvedRef = useRef(options?.onCollisionsResolved);
+  useEffect(() => {
+    onRoutedRef.current = options?.onRouted;
+    onLoadedRef.current = options?.onLoaded;
+    onCollisionsResolvedRef.current = options?.onCollisionsResolved;
+  });
 
   const createWorker = options?.create !== false;
 
@@ -55,6 +61,7 @@ export function useAvoidWorker(options?: UseAvoidWorkerOptions): UseAvoidWorkerR
         setWorkerLoaded(success);
         onLoadedRef.current?.(success);
       },
+      onCollisionsResolved: (nodes) => onCollisionsResolvedRef.current?.(nodes),
     });
 
     return () => {

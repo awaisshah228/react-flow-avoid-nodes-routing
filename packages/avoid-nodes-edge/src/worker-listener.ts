@@ -3,12 +3,14 @@
  * Syncs "loaded" / "routed" into the avoid store.
  */
 
+import type { Node } from "@xyflow/react";
 import type { AvoidRouterWorkerResponse } from "./worker-messages";
 import { useAvoidRoutesStore } from "./store";
 
 export interface AttachAvoidWorkerListenerOptions {
   onRouted?: (routes: Record<string, { path: string; labelX: number; labelY: number }>) => void;
   onLoaded?: (success: boolean) => void;
+  onCollisionsResolved?: (nodes: Node[]) => void;
 }
 
 /**
@@ -19,7 +21,7 @@ export function attachAvoidWorkerListener(
   worker: Worker,
   options: AttachAvoidWorkerListenerOptions = {}
 ): () => void {
-  const { onRouted, onLoaded } = options;
+  const { onRouted, onLoaded, onCollisionsResolved } = options;
   const setLoaded = useAvoidRoutesStore.getState().setLoaded;
   const setRoutes = useAvoidRoutesStore.getState().setRoutes;
 
@@ -35,6 +37,9 @@ export function attachAvoidWorkerListener(
       case "routed":
         setRoutes(msg.routes);
         onRouted?.(msg.routes);
+        break;
+      case "collisionsResolved":
+        onCollisionsResolved?.(msg.nodes);
         break;
       default:
         break;

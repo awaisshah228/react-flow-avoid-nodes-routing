@@ -6,6 +6,7 @@ export default defineConfig([
     entry: {
       index: "src/index.ts",
       edge: "src/AvoidNodesEdge.tsx",
+      "resolve-collisions": "src/resolve-collisions.ts",
     },
     format: ["esm", "cjs"],
     dts: true,

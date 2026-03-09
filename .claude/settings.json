@@ -39,7 +39,8 @@
       "WebFetch(domain:avoid-nodes-pro-example.vercel.app)",
       "WebFetch(domain:avoid-nodes-pro-example-g04tne7hg-awaisshah228s-projects.vercel.app)",
       "Bash(npm publish --access public)",
-      "Bash(ls packages/*/package.json examples/*/package.json)"
+      "Bash(ls packages/*/package.json examples/*/package.json)",
+      "Bash(npm run build --workspace=packages/avoid-nodes-edge)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",

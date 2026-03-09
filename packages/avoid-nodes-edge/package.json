@@ -1,6 +1,6 @@
 {
   "name": "avoid-nodes-edge",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Orthogonal edge routing for React Flow — edges avoid overlapping nodes via libavoid-js WASM running in a Web Worker.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -16,6 +16,11 @@
       "types": "./dist/edge.d.ts",
       "import": "./dist/edge.js",
       "require": "./dist/edge.cjs"
+    },
+    "./resolve-collisions": {
+      "types": "./dist/resolve-collisions.d.ts",
+      "import": "./dist/resolve-collisions.js",
+      "require": "./dist/resolve-collisions.cjs"
     }
   },
   "files": [

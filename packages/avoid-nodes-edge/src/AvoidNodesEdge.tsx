@@ -5,6 +5,7 @@ import {
   useReactFlow,
   type EdgeProps,
   type EdgeMarker,
+  type Edge,
 } from "@xyflow/react";
 import { useAvoidNodesPath } from "./useAvoidNodesPath";
 
@@ -98,7 +99,7 @@ function applyAvoidPathParallelOffset(
 }
 
 /** Edge data: all per-edge settings (stroke, markers, label, ER, connector type). */
-export interface AvoidNodesEdgeData {
+export interface AvoidNodesEdgeData extends Record<string, unknown> {
   label?: string;
   strokeColor?: string;
   strokeWidth?: number;
@@ -117,7 +118,7 @@ export interface AvoidNodesEdgeData {
  * Avoid-nodes edge: orthogonal routing via libavoid-js WASM.
  * Supports stroke color, width, dash, markers, ER labels, parallel offset.
  */
-function AvoidNodesEdgeComponent(props: EdgeProps) {
+function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
   const {
     id,
     source,

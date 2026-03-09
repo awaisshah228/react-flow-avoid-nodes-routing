@@ -17,6 +17,7 @@ import type { Node, NodeChange, Edge } from "@xyflow/react";
 import { useAvoidRoutesStore, useAvoidRouterActionsStore } from "./store";
 import { DEBOUNCE_ROUTING_MS } from "./constants";
 import type { AvoidRouterOptions } from "./router";
+import type { ResolveCollisionsOptions } from "./resolve-collisions";
 import { useAvoidWorker } from "./useAvoidWorker";
 
 export interface UseAvoidNodesRouterOptions {
@@ -26,6 +27,7 @@ export interface UseAvoidNodesRouterOptions {
   diagramGridSize?: number;
   shouldSplitEdgesNearHandle?: boolean;
   autoBestSideConnection?: boolean;
+  onCollisionsResolved?: (nodes: Node[]) => void;
 }
 
 export interface UseAvoidNodesRouterResult {
@@ -33,6 +35,7 @@ export interface UseAvoidNodesRouterResult {
   resetRouting: () => void;
   refreshRouting: () => void;
   updateRoutingForNodeIds: (nodeIds: string[]) => void;
+  resolveCollisionsInWorker: (options?: ResolveCollisionsOptions) => void;
 }
 
 const DEFAULT_OPTIONS: UseAvoidNodesRouterOptions = {
@@ -76,7 +79,10 @@ export function useAvoidNodesRouterFromWorker(
   const setRoutes = useAvoidRoutesStore((s) => s.setRoutes);
   const setActions = useAvoidRouterActionsStore((s) => s.setActions);
 
-  const { post, workerLoaded } = useAvoidWorker({ create: true });
+  const { post, workerLoaded } = useAvoidWorker({
+    create: true,
+    onCollisionsResolved: options?.onCollisionsResolved,
+  });
 
   const didResetRef = useRef(false);
   const nodesMeasuredRef = useRef(false);
@@ -204,10 +210,19 @@ export function useAvoidNodesRouterFromWorker(
     sendReset,
   ]);
 
+  const resolveCollisionsInWorker = useCallback(
+    (collisionOptions?: ResolveCollisionsOptions) => {
+      if (!workerLoaded) return;
+      post({ command: "resolveCollisions", nodes: nodesRef.current, options: collisionOptions });
+    },
+    [post, workerLoaded]
+  );
+
   return {
     updateRoutingOnNodesChange,
     resetRouting,
     refreshRouting,
     updateRoutingForNodeIds,
+    resolveCollisionsInWorker,
   };
 }

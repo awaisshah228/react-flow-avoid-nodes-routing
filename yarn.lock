@@ -436,7 +436,7 @@ any-promise@^1.0.0:
   integrity sha512-7UvmKalWRt1wgjL1RrGxoSJW/0QZFIegpeGvZG9kjp8vrRu55XTHbwnqq2GpXm9uLbcuhxm3IqX9OB4MZR1b2A==
 
 avoid-nodes-edge@*, avoid-nodes-edge@^0.2.0, "avoid-nodes-edge@file:/Users/awaisshah228/Documents/coding/ai-diagram-generator/avoid-nodes-pro-example/packages/avoid-nodes-edge":
-  version "0.2.0"
+  version "0.3.0"
   resolved "file:packages/avoid-nodes-edge"
 
 avoid-nodes-edge@^0.1.9:

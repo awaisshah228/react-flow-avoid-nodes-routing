@@ -14,6 +14,7 @@ import {
   loadWasmWithRetry,
   routeAllCore,
 } from "../routing-core";
+import { resolveCollisions, type ResolveCollisionsOptions } from "../resolve-collisions";
 
 // ---- Worker command types ----
 
@@ -24,6 +25,7 @@ type AvoidRouterWorkerCommand =
   | { command: "add"; cell: FlowNode | FlowEdge }
   | { command: "updateNodes"; nodes?: FlowNode[] }
   | { command: "route"; nodes?: FlowNode[]; edges?: FlowEdge[]; options?: AvoidRouterOptions }
+  | { command: "resolveCollisions"; nodes?: FlowNode[]; options?: ResolveCollisionsOptions }
   | { command: "close" };
 
 // ---- WASM Loading ----
@@ -162,6 +164,20 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       } catch {
         postMessage({ command: "routed", routes: {} } as const);
       }
+      break;
+    }
+
+    case "resolveCollisions": {
+      const collisionNodes = (msg.nodes ?? currentNodes) as import("@xyflow/react").Node[];
+      const resolved = resolveCollisions(collisionNodes, msg.options);
+      // Update internal model with resolved positions
+      for (const node of resolved) {
+        const i = currentNodes.findIndex((n) => n.id === node.id);
+        if (i >= 0) currentNodes[i] = { ...currentNodes[i], position: node.position };
+      }
+      postMessage({ command: "collisionsResolved", nodes: resolved } as const);
+      // Re-route edges with the updated node positions
+      debouncedRoute();
       break;
     }
 
