@@ -4,7 +4,7 @@
  */
 
 import type { Node, Edge } from "@xyflow/react";
-import type { AvoidRoute, AvoidRouterOptions } from "./router";
+import type { AvoidRoute, AvoidRouterOptions } from "./routing-core";
 
 /** Commands the main thread can send to the worker */
 export type AvoidRouterWorkerCommand =
