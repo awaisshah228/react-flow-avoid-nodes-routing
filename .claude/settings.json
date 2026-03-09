@@ -45,7 +45,8 @@
       "Bash(yarn dev)",
       "Bash(npx vite)",
       "Bash(lsof -ti:5173,5174,5175,5176,5177,5178)",
-      "Bash(xargs kill)"
+      "Bash(xargs kill)",
+      "Bash(vercel --version)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",

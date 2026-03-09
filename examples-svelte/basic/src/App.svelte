@@ -7,7 +7,6 @@
     MiniMap,
     type Node,
     type Edge,
-    type NodeTypes,
     type EdgeTypes,
   } from "@xyflow/svelte";
   import "@xyflow/svelte/dist/style.css";
@@ -18,16 +17,10 @@
     resolveCollisions,
   } from "avoid-nodes-edge-svelte";
 
-  // ---------------------------------------------------------------------------
-  // Edge types
-  // ---------------------------------------------------------------------------
   const edgeTypes: EdgeTypes = {
     avoidNodes: AvoidNodesEdge as any,
   };
 
-  // ---------------------------------------------------------------------------
-  // Initial nodes — source on the left, target on the right, blocker in between
-  // ---------------------------------------------------------------------------
   const initialNodes: Node[] = [
     {
       id: "source",
@@ -72,46 +65,24 @@
   const nodes = writable<Node[]>(initialNodes);
   const edges = writable<Edge[]>(initialEdges);
 
-  // ---------------------------------------------------------------------------
-  // Avoid-nodes router
-  // ---------------------------------------------------------------------------
   const router = createAvoidNodesRouter({
     onCollisionsResolved: (resolvedNodes) => {
       nodes.set(resolvedNodes as Node[]);
     },
   });
 
-  // Default router options — matching the React package defaults
-  const routerOptions = {
-    shapeBufferDistance: 12,
-    idealNudgingDistance: 10,
-    edgeRounding: 8,
-    diagramGridSize: 0,
-    shouldSplitEdgesNearHandle: true,
-    autoBestSideConnection: true,
-  };
+  $: router.reset($nodes as any, $edges as any);
 
-  // Initial reset
-  $: router.reset($nodes, $edges, routerOptions);
-
-  // ---------------------------------------------------------------------------
-  // Handle node drag — update routes & resolve collisions on drag stop
-  // ---------------------------------------------------------------------------
   function handleNodeDrag(event: CustomEvent) {
-    // Incremental update while dragging
-    router.updateNodes($nodes);
+    router.updateNodes($nodes as any);
   }
 
   function handleNodeDragStop(event: CustomEvent) {
-    // Resolve collisions after drag
-    const resolved = resolveCollisions($nodes, { margin: 20, maxIterations: 50 });
-    nodes.set(resolved);
-    router.reset(resolved, $edges, routerOptions);
+    const resolved = resolveCollisions($nodes as any, { margin: 20, maxIterations: 50 });
+    nodes.set(resolved as any);
+    router.reset(resolved as any, $edges as any);
   }
 
-  // ---------------------------------------------------------------------------
-  // Cleanup
-  // ---------------------------------------------------------------------------
   import { onDestroy } from "svelte";
   onDestroy(() => {
     router.destroy();

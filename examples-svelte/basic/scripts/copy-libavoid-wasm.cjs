@@ -1,9 +1,4 @@
 #!/usr/bin/env node
-/**
- * Copy libavoid.wasm from node_modules to public/ so Vite can serve it.
- * Searches both local and hoisted (workspace root) node_modules.
- */
-
 const fs = require("fs");
 const path = require("path");
 

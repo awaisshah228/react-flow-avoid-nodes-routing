@@ -1,12 +1,33 @@
-# Avoid Nodes Edge Routing — React Flow + libavoid-js
+# Avoid Nodes Edge Routing — React Flow & Svelte Flow + libavoid-js
 
-> **This routing logic is published as an npm package: [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge)**
+> **React Flow:** [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge)
+>
+> **Svelte Flow:** [`avoid-nodes-edge-svelte`](https://www.npmjs.com/package/avoid-nodes-edge-svelte)
 >
 > **[Live Demo](https://avoid-nodes-pro-example.vercel.app)**
 
 Orthogonal edge routing that avoids overlapping nodes, powered by **libavoid-js** (WASM) with **Web Worker** support for smooth, non-blocking UI.
 
-Built with [React Flow v12](https://reactflow.dev/) and [libavoid-js](https://github.com/nicktf/libavoid-js) (Emscripten port of [Adaptagrams libavoid](https://github.com/mjwybrow/adaptagrams)).
+Built with [React Flow v12](https://reactflow.dev/), [Svelte Flow](https://svelteflow.dev/), and [libavoid-js](https://github.com/nicktf/libavoid-js) (Emscripten port of [Adaptagrams libavoid](https://github.com/mjwybrow/adaptagrams)).
+
+## Packages
+
+| Package | Framework | npm |
+| --- | --- | --- |
+| [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge) | React Flow | [![npm](https://img.shields.io/npm/v/avoid-nodes-edge)](https://www.npmjs.com/package/avoid-nodes-edge) |
+| [`avoid-nodes-edge-svelte`](https://www.npmjs.com/package/avoid-nodes-edge-svelte) | Svelte Flow | [![npm](https://img.shields.io/npm/v/avoid-nodes-edge-svelte)](https://www.npmjs.com/package/avoid-nodes-edge-svelte) |
+
+## Examples
+
+| Example | Framework | Directory |
+| --- | --- | --- |
+| Basic | React | `examples-next/basic` |
+| Demo | React | `examples-next/demo` |
+| Collision Demo | React | `examples-next/collision-demo` |
+| Remote Basic | React | `examples-next/remote-basic` |
+| Next.js Basic | React (Next.js) | `examples-next/nextjs-latest-basic` |
+| Basic | Svelte | `examples-svelte/basic` |
+| Demo | Svelte | `examples-svelte/demo` |
 
 ## Features
 

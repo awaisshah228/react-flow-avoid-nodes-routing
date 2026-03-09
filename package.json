@@ -4,10 +4,12 @@
   "packageManager": "yarn@1.22.22",
   "workspaces": [
     "packages/*",
-    "examples/demo",
-    "examples/collision-demo",
-    "examples/remote-basic",
-    "examples/svelte-demo"
+    "examples-next/demo",
+    "examples-next/collision-demo",
+    "examples-next/remote-basic",
+    "examples-next/nextjs-latest-basic",
+    "examples-svelte/demo",
+    "examples-svelte/basic"
   ],
   "scripts": {
     "build": "turbo run build",
