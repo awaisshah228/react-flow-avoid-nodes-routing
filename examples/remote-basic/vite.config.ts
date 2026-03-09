@@ -10,4 +10,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: { exclude: ['avoid-nodes-edge'] },
+  resolve: {
+    dedupe: ['react', 'react-dom', '@xyflow/react', 'zustand'],
+  },
 })
