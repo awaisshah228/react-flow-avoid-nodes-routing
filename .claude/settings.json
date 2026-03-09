@@ -38,7 +38,8 @@
       "Bash(npx turbo run build --filter=avoid-nodes-edge --force)",
       "WebFetch(domain:avoid-nodes-pro-example.vercel.app)",
       "WebFetch(domain:avoid-nodes-pro-example-g04tne7hg-awaisshah228s-projects.vercel.app)",
-      "Bash(npm publish --access public)"
+      "Bash(npm publish --access public)",
+      "Bash(ls packages/*/package.json examples/*/package.json)"
     ],
     "additionalDirectories": [
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/src/components/circuit",
@@ -47,7 +48,8 @@
       "/Users/awaisshah228/Documents/coding/ai-diagram-generator/packages/avoid-nodes-edge",
       "/tmp/test-avoid-nodes",
       "/private/tmp/test-avoid-nodes",
-      "/private/tmp/test-avoid-nodes2"
+      "/private/tmp/test-avoid-nodes2",
+      "/Users/awaisshah228/Documents/coding/ai-diagram-generator/avoid-nodes-pro-example"
     ]
   }
 }
