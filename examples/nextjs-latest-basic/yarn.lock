@@ -1099,10 +1099,10 @@ available-typed-arrays@^1.0.7:
   dependencies:
     possible-typed-array-names "^1.0.0"
 
-avoid-nodes-edge@^0.2.2:
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/avoid-nodes-edge/-/avoid-nodes-edge-0.2.2.tgz#2e5341ce8cd51196a4f5e36095e46c6b6013bfc8"
-  integrity sha512-t05KXFyWBNe1gNGeTIHy51lIv2UOqUbkY3IaLH1tgHRZ6W+9Zs01yjNR8VwNmhGcM5qsy3X7bqpqwp50yxRHbA==
+avoid-nodes-edge@^0.2.3:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/avoid-nodes-edge/-/avoid-nodes-edge-0.2.3.tgz#1eb56498c372b8049e0a390afd50bcd92464f7fb"
+  integrity sha512-FTGlHWmThlCfNcn0KGBC6rSD/Q4DmJrNnp7l64plLZiJGX4Xp9nlIdiB7oAUSM5uN/46y4Ihb8bHmFZOfM7gJQ==
 
 axe-core@^4.10.0:
   version "4.11.1"
