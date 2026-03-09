@@ -36,18 +36,22 @@ export interface UseAvoidNodesRouterResult {
 }
 
 const DEFAULT_OPTIONS: UseAvoidNodesRouterOptions = {
+  edgeRounding: 8,
   edgeToEdgeSpacing: 10,
-  edgeToNodeSpacing: 8,
+  edgeToNodeSpacing: 12,
+  diagramGridSize: 0,
+  shouldSplitEdgesNearHandle: true,
+  autoBestSideConnection: true,
 };
 
 function toRouterOptions(opts?: UseAvoidNodesRouterOptions): AvoidRouterOptions {
   return {
     idealNudgingDistance: opts?.edgeToEdgeSpacing ?? DEFAULT_OPTIONS.edgeToEdgeSpacing,
     shapeBufferDistance: opts?.edgeToNodeSpacing ?? DEFAULT_OPTIONS.edgeToNodeSpacing,
-    edgeRounding: opts?.edgeRounding,
-    diagramGridSize: opts?.diagramGridSize,
-    shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle,
-    autoBestSideConnection: opts?.autoBestSideConnection,
+    edgeRounding: opts?.edgeRounding ?? DEFAULT_OPTIONS.edgeRounding,
+    diagramGridSize: opts?.diagramGridSize ?? DEFAULT_OPTIONS.diagramGridSize,
+    shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle ?? DEFAULT_OPTIONS.shouldSplitEdgesNearHandle,
+    autoBestSideConnection: opts?.autoBestSideConnection ?? DEFAULT_OPTIONS.autoBestSideConnection,
   };
 }
 
