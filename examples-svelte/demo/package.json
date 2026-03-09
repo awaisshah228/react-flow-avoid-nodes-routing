@@ -1,0 +1,27 @@
+{
+  "name": "@xyflow/avoid-nodes-svelte-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "postinstall": "node scripts/copy-libavoid-wasm.cjs"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^1.1.4",
+    "@xyflow/svelte": "^0.1.0",
+    "avoid-nodes-edge-svelte": "*",
+    "d3-hierarchy": "^3.1.2",
+    "elkjs": "^0.9.3",
+    "libavoid-js": "0.4.5",
+    "svelte": "^4.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "@types/d3-hierarchy": "^3.1.7",
+    "typescript": "^5.0.2",
+    "vite": "^5.0.0"
+  }
+}
