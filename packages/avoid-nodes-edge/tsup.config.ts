@@ -8,7 +8,7 @@ export default defineConfig([
       edge: "src/AvoidNodesEdge.tsx",
       "resolve-collisions": "src/resolve-collisions.ts",
     },
-    format: ["esm", "cjs"],
+    format: ["esm"],
     dts: true,
     sourcemap: false,
     external: ["react", "react-dom", "@xyflow/react", "zustand"],
