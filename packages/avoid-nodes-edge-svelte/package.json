@@ -1,0 +1,72 @@
+{
+  "name": "avoid-nodes-edge-svelte",
+  "version": "0.1.0",
+  "description": "Orthogonal edge routing for Svelte Flow — edges avoid overlapping nodes via libavoid-js WASM running in a Web Worker.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "svelte": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./edge": {
+      "types": "./dist/AvoidNodesEdge.svelte.d.ts",
+      "svelte": "./dist/AvoidNodesEdge.svelte",
+      "import": "./dist/AvoidNodesEdge.svelte"
+    },
+    "./resolve-collisions": {
+      "types": "./dist/resolve-collisions.d.ts",
+      "import": "./dist/resolve-collisions.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.svelte",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup && sed 's|from \"./store\"|from \"./index.js\"|' src/AvoidNodesEdge.svelte > dist/AvoidNodesEdge.svelte",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@xyflow/svelte": ">=0.1.0",
+    "svelte": ">=4.0.0",
+    "libavoid-js": "0.4.5"
+  },
+  "devDependencies": {
+    "@xyflow/svelte": "^0.1.0",
+    "svelte": "^4.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.2"
+  },
+  "keywords": [
+    "svelte-flow",
+    "svelteflow",
+    "xyflow",
+    "svelte",
+    "edge-routing",
+    "orthogonal",
+    "libavoid",
+    "wasm",
+    "webassembly",
+    "web-worker",
+    "avoid-nodes",
+    "diagram",
+    "graph"
+  ],
+  "homepage": "https://github.com/awaisshah228/react-flow-avoid-nodes-routing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awaisshah228/react-flow-avoid-nodes-routing.git",
+    "directory": "packages/avoid-nodes-edge-svelte"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Awais Shah (https://github.com/awaisshah228)"
+}

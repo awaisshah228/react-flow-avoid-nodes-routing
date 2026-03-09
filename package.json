@@ -6,7 +6,8 @@
     "packages/*",
     "examples/demo",
     "examples/collision-demo",
-    "examples/remote-basic"
+    "examples/remote-basic",
+    "examples/svelte-demo"
   ],
   "scripts": {
     "build": "turbo run build",
