@@ -4,3 +4,4 @@ dist
 *.local
 .turbo
 .vercel
+examples-svelte/demo/vercel.json
