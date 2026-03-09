@@ -1,4 +1,4 @@
 {
   "buildCommand": "npx turbo run build --filter=@xyflow/avoid-nodes-example",
-  "outputDirectory": "examples/basic/dist"
+  "outputDirectory": "examples/demo/dist"
 }
