@@ -15,6 +15,7 @@ import {
   type EdgeChange,
   type Connection,
   ProOptions,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -40,14 +41,16 @@ const tabBarStyle: React.CSSProperties = {
   position: "absolute",
   top: 12,
   left: 12,
+  right: 12,
   display: "flex",
+  flexWrap: "wrap",
   gap: 4,
-  zIndex: 10,
+  zIndex: 20,
 };
 
 const panelStyle: React.CSSProperties = {
   position: "absolute",
-  top: 12,
+  top: 90,
   right: 12,
   background: "rgba(255, 255, 255, 0.95)",
   borderRadius: 8,
@@ -55,6 +58,9 @@ const panelStyle: React.CSSProperties = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
   zIndex: 10,
   minWidth: 240,
+  maxWidth: "min(320px, calc(100vw - 24px))",
+  maxHeight: "calc(100vh - 80px)",
+  overflowY: "auto",
   fontSize: 13,
 };
 
@@ -82,6 +88,7 @@ function SettingsPanel({
   settings: Settings;
   onChange: (key: string, value: number | boolean) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const sliders = [
     { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
     { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
@@ -91,86 +98,96 @@ function SettingsPanel({
 
   return (
     <div style={panelStyle}>
-      <div style={{ fontWeight: 600, marginBottom: 12 }}>Settings</div>
-      {sliders.map(({ key, label, min, max }) => (
-        <div key={key} style={rowStyle}>
-          <label>{label}</label>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              type="range"
-              min={min}
-              max={max}
-              value={settings[key]}
-              onChange={(e) => onChange(key, Number(e.target.value))}
-              style={{ width: 100 }}
-            />
-            <span style={{ minWidth: 28, textAlign: "right" }}>{settings[key]}</span>
+      <div
+        style={{ fontWeight: 600, marginBottom: open ? 12 : 0, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", userSelect: "none" }}
+        onClick={() => setOpen(!open)}
+      >
+        <span>Settings</span>
+        <span style={{ fontSize: 11, color: "#888" }}>{open ? "Hide" : "Show"}</span>
+      </div>
+      {open && (
+        <>
+          {sliders.map(({ key, label, min, max }) => (
+            <div key={key} style={rowStyle}>
+              <label>{label}</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  value={settings[key]}
+                  onChange={(e) => onChange(key, Number(e.target.value))}
+                  style={{ width: 100 }}
+                />
+                <span style={{ minWidth: 28, textAlign: "right" }}>{settings[key]}</span>
+              </div>
+            </div>
+          ))}
+          <div style={rowStyle}>
+            <label>Split Edges Near Handle</label>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[true, false].map((val) => (
+                <button
+                  key={String(val)}
+                  onClick={() => onChange("shouldSplitEdgesNearHandle", val)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 4,
+                    border: "1px solid #ccc",
+                    background: settings.shouldSplitEdgesNearHandle === val ? "#333" : "#fff",
+                    color: settings.shouldSplitEdgesNearHandle === val ? "#fff" : "#333",
+                    cursor: "pointer",
+                  }}
+                >
+                  {val ? "True" : "False"}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
-      <div style={rowStyle}>
-        <label>Split Edges Near Handle</label>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[true, false].map((val) => (
-            <button
-              key={String(val)}
-              onClick={() => onChange("shouldSplitEdgesNearHandle", val)}
-              style={{
-                padding: "4px 10px",
-                borderRadius: 4,
-                border: "1px solid #ccc",
-                background: settings.shouldSplitEdgesNearHandle === val ? "#333" : "#fff",
-                color: settings.shouldSplitEdgesNearHandle === val ? "#fff" : "#333",
-                cursor: "pointer",
-              }}
-            >
-              {val ? "True" : "False"}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div style={rowStyle}>
-        <label>Resolve Collisions</label>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[true, false].map((val) => (
-            <button
-              key={String(val)}
-              onClick={() => onChange("resolveCollisions", val)}
-              style={{
-                padding: "4px 10px",
-                borderRadius: 4,
-                border: "1px solid #ccc",
-                background: settings.resolveCollisions === val ? "#333" : "#fff",
-                color: settings.resolveCollisions === val ? "#fff" : "#333",
-                cursor: "pointer",
-              }}
-            >
-              {val ? "True" : "False"}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div style={rowStyle}>
-        <label>Auto Best Side</label>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[true, false].map((val) => (
-            <button
-              key={String(val)}
-              onClick={() => onChange("autoBestSideConnection", val)}
-              style={{
-                padding: "4px 10px",
-                borderRadius: 4,
-                border: "1px solid #ccc",
-                background: settings.autoBestSideConnection === val ? "#333" : "#fff",
-                color: settings.autoBestSideConnection === val ? "#fff" : "#333",
-                cursor: "pointer",
-              }}
-            >
-              {val ? "True" : "False"}
-            </button>
-          ))}
-        </div>
-      </div>
+          <div style={rowStyle}>
+            <label>Resolve Collisions</label>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[true, false].map((val) => (
+                <button
+                  key={String(val)}
+                  onClick={() => onChange("resolveCollisions", val)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 4,
+                    border: "1px solid #ccc",
+                    background: settings.resolveCollisions === val ? "#333" : "#fff",
+                    color: settings.resolveCollisions === val ? "#fff" : "#333",
+                    cursor: "pointer",
+                  }}
+                >
+                  {val ? "True" : "False"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={rowStyle}>
+            <label>Auto Best Side</label>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[true, false].map((val) => (
+                <button
+                  key={String(val)}
+                  onClick={() => onChange("autoBestSideConnection", val)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 4,
+                    border: "1px solid #ccc",
+                    background: settings.autoBestSideConnection === val ? "#333" : "#fff",
+                    color: settings.autoBestSideConnection === val ? "#fff" : "#333",
+                    cursor: "pointer",
+                  }}
+                >
+                  {val ? "True" : "False"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -292,6 +309,8 @@ function Flow({ tab }: { tab: ExampleTab }) {
       edgeTypes={edgeTypes}
       defaultEdgeOptions={{ type: "avoidNodes" }}
       fitView
+      minZoom={0.01}
+      maxZoom={100}
       proOptions={proOptions}
       selectNodesOnDrag={false}
       multiSelectionKeyCode="Shift"
@@ -329,10 +348,19 @@ function AutoLayoutSettingsPanel({
     { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
   ] as const;
 
+  const [open, setOpen] = useState(false);
+
   return (
     <div style={panelStyle}>
-      <div style={{ fontWeight: 600, marginBottom: 12 }}>Auto Layout + libavoid</div>
-
+      <div
+        style={{ fontWeight: 600, marginBottom: open ? 12 : 0, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", userSelect: "none" }}
+        onClick={() => setOpen(!open)}
+      >
+        <span>Auto Layout + libavoid</span>
+        <span style={{ fontSize: 11, color: "#888" }}>{open ? "Hide" : "Show"}</span>
+      </div>
+      {!open ? null : (
+      <>
       <div style={{ fontWeight: 500, marginBottom: 8, fontSize: 12, color: "#888" }}>Layout Engine</div>
       <div style={rowStyle}>
         <label>Algorithm</label>
@@ -451,6 +479,8 @@ function AutoLayoutSettingsPanel({
           ))}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -472,6 +502,7 @@ function AutoLayoutFlow() {
   });
 
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
+  const { fitView } = useReactFlow();
   const didLayout = useRef(false);
 
   const applyLayout = useCallback(
@@ -483,9 +514,12 @@ function AutoLayoutFlow() {
       });
       setNodes(laid);
       // Double rAF ensures React has flushed state and node measurements are up-to-date
-      requestAnimationFrame(() => requestAnimationFrame(() => resetRouting()));
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        resetRouting();
+        fitView({ duration: 300 });
+      }));
     },
-    [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting]
+    [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting, fitView]
   );
 
   // Run layout on mount and when layout settings change
@@ -569,6 +603,8 @@ function AutoLayoutFlow() {
       edgeTypes={edgeTypes}
       defaultEdgeOptions={{ type: "avoidNodes" }}
       fitView
+      minZoom={0.01}
+      maxZoom={100}
       proOptions={proOptions}
       selectNodesOnDrag={false}
     >
@@ -602,6 +638,7 @@ function AutoLayoutGroupsFlow() {
   });
 
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
+  const { fitView } = useReactFlow();
   const didLayout = useRef(false);
 
   const applyLayout = useCallback(
@@ -613,9 +650,12 @@ function AutoLayoutGroupsFlow() {
       });
       setNodes(laid);
       // Double rAF ensures React has flushed state and node measurements are up-to-date
-      requestAnimationFrame(() => requestAnimationFrame(() => resetRouting()));
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        resetRouting();
+        fitView({ duration: 300 });
+      }));
     },
-    [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting]
+    [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting, fitView]
   );
 
   useEffect(() => {
@@ -699,6 +739,8 @@ function AutoLayoutGroupsFlow() {
       edgeTypes={edgeTypes}
       defaultEdgeOptions={{ type: "avoidNodes" }}
       fitView
+      minZoom={0.01}
+      maxZoom={100}
       proOptions={proOptions}
       selectNodesOnDrag={false}
     >
