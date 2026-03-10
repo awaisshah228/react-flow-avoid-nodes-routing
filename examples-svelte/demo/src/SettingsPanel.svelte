@@ -59,7 +59,7 @@
 
 <div class="panel">
   <div class="header" on:click={() => (open = !open)}>
-    <span>{open ? (showLayout ? "Auto Layout + libavoid" : "Settings") : (showLayout ? "Auto Layout" : "Settings")}</span>
+    <span>{open ? (showLayout ? "Auto Layout + libavoid" : "Settings") : (showLayout ? "\u2699\uFE0F Auto Layout" : "\u2699\uFE0F Settings")}</span>
     <span class="toggle">{open ? "\u2715" : ""}</span>
   </div>
 
