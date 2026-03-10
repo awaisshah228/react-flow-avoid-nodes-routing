@@ -18,6 +18,7 @@
   import { autoLayoutGroupNodes, autoLayoutGroupEdges } from "../initialElementsAutoLayoutGroups";
   import { runAutoLayoutWithGroups, type LayoutDirection, type LayoutAlgorithmName } from "../utils/auto-layout";
   import SettingsPanel from "../SettingsPanel.svelte";
+  import FitViewOnLayout from "../FitViewOnLayout.svelte";
 
   const edgeTypes: EdgeTypes = { avoidNodes: AvoidNodesEdge as any };
 
@@ -53,6 +54,7 @@
   $: router.reset($nodes, $edges, routerOptions);
 
   let didLayout = false;
+  let fitViewTrigger = 0;
 
   async function applyLayout(currentNodes: Node[]) {
     const laid = await runAutoLayoutWithGroups(currentNodes, $edges, {
@@ -64,6 +66,7 @@
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         router.reset(laid, $edges, routerOptions);
+        fitViewTrigger++;
       });
     });
   }
@@ -119,6 +122,7 @@
   on:nodedrag={handleNodeDrag}
   on:nodedragstop={handleNodeDragStop}
 >
+  <FitViewOnLayout trigger={fitViewTrigger} />
   <Background />
   <Controls />
   <MiniMap />
