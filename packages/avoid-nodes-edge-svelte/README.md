@@ -399,7 +399,7 @@ If this package saves you time, consider supporting its development:
 
 **USDC (Solana):** `59FhVxK3uxABiJ9VzXtCoyCxqq4nhoZDBtUV3gEkiexo`
 
-<img src="https://raw.githubusercontent.com/awaisshah228/react-flow-avoid-nodes-routing/turbo-package/assets/image.png" width="200" alt="Solana USDC QR Code" />
+<img src="https://raw.githubusercontent.com/awaisshah228/react-flow-avoid-nodes-routing/turbo-package/assets/solana-donate-qr.png" width="200" alt="Solana USDC QR Code" />
 
 ## License
 
