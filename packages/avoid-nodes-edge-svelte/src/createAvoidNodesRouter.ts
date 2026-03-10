@@ -33,6 +33,7 @@ const DEFAULT_ROUTER_OPTIONS: Required<AvoidRouterOptions> = {
   diagramGridSize: 0,
   shouldSplitEdgesNearHandle: true,
   autoBestSideConnection: true,
+  debounceMs: 0,
 };
 
 function mergeDefaults(opts?: AvoidRouterOptions): AvoidRouterOptions {
@@ -44,6 +45,7 @@ function mergeDefaults(opts?: AvoidRouterOptions): AvoidRouterOptions {
     diagramGridSize: opts?.diagramGridSize ?? DEFAULT_ROUTER_OPTIONS.diagramGridSize,
     shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle ?? DEFAULT_ROUTER_OPTIONS.shouldSplitEdgesNearHandle,
     autoBestSideConnection: opts?.autoBestSideConnection ?? DEFAULT_ROUTER_OPTIONS.autoBestSideConnection,
+    debounceMs: opts?.debounceMs ?? DEFAULT_ROUTER_OPTIONS.debounceMs,
   };
 }
 
@@ -52,6 +54,8 @@ export interface AvoidNodesRouter {
   reset: (nodes: FlowNode[], edges: FlowEdge[], options?: AvoidRouterOptions) => void;
   /** Send incremental node position updates (for drag). */
   updateNodes: (nodes: FlowNode[]) => void;
+  /** Re-route edges for a single node by ID (e.g. after handle position changes). */
+  updateRoutesForNodeId: (nodeId: string, allNodes: FlowNode[]) => void;
   /** Resolve collisions in the worker. */
   resolveCollisions: (nodes: FlowNode[], options?: ResolveCollisionsOptions) => void;
   /** Clean up worker. Call in onDestroy. */
@@ -113,6 +117,13 @@ export function createAvoidNodesRouter(
     post({ command: "updateNodes", nodes });
   }
 
+  function updateRoutesForNodeId(nodeId: string, allNodes: FlowNode[]) {
+    if (!loaded || !didReset) return;
+    const node = allNodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    post({ command: "updateNodes", nodes: [node] });
+  }
+
   function resolveCollisionsInWorker(nodes: FlowNode[], collisionOptions?: ResolveCollisionsOptions) {
     if (!loaded) return;
     post({ command: "resolveCollisions", nodes, options: collisionOptions });
@@ -132,6 +143,7 @@ export function createAvoidNodesRouter(
   return {
     reset,
     updateNodes,
+    updateRoutesForNodeId,
     resolveCollisions: resolveCollisionsInWorker,
     destroy,
     get loaded() { return loaded; },

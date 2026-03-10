@@ -27,6 +27,7 @@ export interface UseAvoidNodesRouterOptions {
   diagramGridSize?: number;
   shouldSplitEdgesNearHandle?: boolean;
   autoBestSideConnection?: boolean;
+  debounceMs?: number;
   onCollisionsResolved?: (nodes: Node[]) => void;
 }
 
@@ -55,6 +56,7 @@ function toRouterOptions(opts?: UseAvoidNodesRouterOptions): AvoidRouterOptions 
     diagramGridSize: opts?.diagramGridSize ?? DEFAULT_OPTIONS.diagramGridSize,
     shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle ?? DEFAULT_OPTIONS.shouldSplitEdgesNearHandle,
     autoBestSideConnection: opts?.autoBestSideConnection ?? DEFAULT_OPTIONS.autoBestSideConnection,
+    debounceMs: opts?.debounceMs ?? DEFAULT_OPTIONS.debounceMs,
   };
 }
 

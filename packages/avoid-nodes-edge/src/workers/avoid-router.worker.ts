@@ -47,7 +47,6 @@ const routerLoaded = loadWasmWithRetry().then((lib) => {
 let currentNodes: FlowNode[] = [];
 let currentEdges: FlowEdge[] = [];
 let currentOptions: AvoidRouterOptions = {};
-
 function isNode(cell: FlowNode | FlowEdge): cell is FlowNode {
   return "position" in cell && ("width" in cell || "measured" in cell || !("source" in cell));
 }
@@ -65,7 +64,12 @@ function doRoute(): Record<string, AvoidRoute> {
 
 // ---- Debounce ----
 
-const DEBOUNCE_MS = 0;
+const DEFAULT_DEBOUNCE_MS = 0;
+
+function getDebounceMs(): number {
+  return currentOptions.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+}
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 function isPending() { return debounceTimer != null; }
 function cancelDebounce() {
@@ -82,7 +86,7 @@ function debouncedRoute() {
         postMessage({ command: "routed", routes } as const);
       }
     }, 0);
-  }, DEBOUNCE_MS);
+  }, getDebounceMs());
 }
 
 // ---- Message handler ----

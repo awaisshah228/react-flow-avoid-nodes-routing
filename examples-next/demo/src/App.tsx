@@ -5,6 +5,7 @@ import "@xyflow/react/dist/style.css";
 import Flow, { type ExampleTab } from "./flows/Flow";
 import AutoLayoutFlow from "./flows/AutoLayoutFlow";
 import AutoLayoutGroupsFlow from "./flows/AutoLayoutGroupsFlow";
+import StressTestFlow from "./flows/StressTestFlow";
 
 const tabBarStyle: React.CSSProperties = {
   position: "absolute",
@@ -52,6 +53,7 @@ export default function App() {
     switch (tab) {
       case "elk": return <AutoLayoutFlow />;
       case "auto-layout-groups": return <AutoLayoutGroupsFlow />;
+      case "stress": return <StressTestFlow />;
       default: return <Flow tab={tab} />;
     }
   };
@@ -65,6 +67,7 @@ export default function App() {
         <TabButton label="Subflows" active={tab === "subflows"} onClick={() => setTab("subflows")} />
         <TabButton label="Auto Layout" active={tab === "elk"} onClick={() => setTab("elk")} />
         <TabButton label="Auto Layout + Groups" active={tab === "auto-layout-groups"} onClick={() => setTab("auto-layout-groups")} />
+        <TabButton label="Stress Test (200)" active={tab === "stress"} onClick={() => setTab("stress")} />
       </div>
     </ReactFlowProvider>
   );

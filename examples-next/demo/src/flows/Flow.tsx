@@ -30,7 +30,7 @@ const edgeTypes = { avoidNodes: AvoidNodesEdge };
 const nodeTypes = { group: GroupNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
-export type ExampleTab = "basic" | "group" | "subflows" | "elk" | "auto-layout-groups";
+export type ExampleTab = "basic" | "group" | "subflows" | "elk" | "auto-layout-groups" | "stress";
 
 const initialNodesForTab: Record<string, Node[]> = {
   basic: basicNodes,

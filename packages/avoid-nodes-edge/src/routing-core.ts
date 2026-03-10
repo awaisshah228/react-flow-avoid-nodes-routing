@@ -15,6 +15,7 @@ export type AvoidRouterOptions = {
   diagramGridSize?: number;
   shouldSplitEdgesNearHandle?: boolean;
   autoBestSideConnection?: boolean;
+  debounceMs?: number;
 };
 
 export type HandlePosition = "left" | "right" | "top" | "bottom";
