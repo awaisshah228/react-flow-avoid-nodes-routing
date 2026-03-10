@@ -355,6 +355,12 @@ function Flow() {
 | `edgeRounding` | `0` | Corner radius (px) for orthogonal turns. `0` = sharp corners |
 | `diagramGridSize` | `0` | Snap edge waypoints to grid. `0` = no snapping |
 
+## Sponsor
+
+If this project saves you time, consider supporting its development:
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/awaisshah228)
+
 ## Dependencies
 
 - `@xyflow/react ^12.7.0` — React Flow v12

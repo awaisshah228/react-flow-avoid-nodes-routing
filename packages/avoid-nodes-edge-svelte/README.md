@@ -391,6 +391,12 @@ Make sure the node has `type` set to something other than `"group"`. Group nodes
 
 - [avoid-nodes-edge](https://www.npmjs.com/package/avoid-nodes-edge) — React Flow version of this package
 
+## Sponsor
+
+If this package saves you time, consider supporting its development:
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/awaisshah228)
+
 ## License
 
 See [LICENSE](./LICENSE)
