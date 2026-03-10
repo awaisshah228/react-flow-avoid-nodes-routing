@@ -1,6 +1,6 @@
 # avoid-nodes-edge-svelte
 
-**[GitHub](https://github.com/awaisshah228/react-flow-avoid-nodes-routing/tree/turbo-package)**
+**[GitHub](https://github.com/awaisshah228/react-flow-avoid-nodes-routing/tree/turbo-package)** · **[Svelte Demo](https://svelte-demo-beta.vercel.app/)**
 
 [![npm](https://img.shields.io/npm/v/avoid-nodes-edge-svelte)](https://www.npmjs.com/package/avoid-nodes-edge-svelte) [![npm bundle size](https://img.shields.io/bundlephobia/minzip/avoid-nodes-edge-svelte)](https://bundlephobia.com/package/avoid-nodes-edge-svelte)
 

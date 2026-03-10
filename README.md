@@ -4,7 +4,7 @@
 >
 > **Svelte Flow:** [`avoid-nodes-edge-svelte`](https://www.npmjs.com/package/avoid-nodes-edge-svelte)
 >
-> **[Live Demo](https://avoid-nodes-pro-example.vercel.app)**
+> **[React Demo](https://avoid-nodes-pro-example.vercel.app)** · **[Svelte Demo](https://svelte-demo-beta.vercel.app/)**
 
 Orthogonal edge routing that avoids overlapping nodes, powered by **libavoid-js** (WASM) with **Web Worker** support for smooth, non-blocking UI.
 
