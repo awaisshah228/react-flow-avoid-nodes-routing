@@ -2,7 +2,7 @@
 
 **[React Demo](https://avoid-nodes-pro-example.vercel.app)** · **[Svelte Demo](https://svelte-demo-beta.vercel.app/)** | **[How It Works](https://github.com/awaisshah228/react-flow-avoid-nodes-routing/blob/turbo-package/HOW_IT_WORKS.md)** | **[GitHub](https://github.com/awaisshah228/react-flow-avoid-nodes-routing/tree/turbo-package)**
 
-[![npm](https://img.shields.io/npm/v/avoid-nodes-edge)](https://www.npmjs.com/package/avoid-nodes-edge) [![npm bundle size](https://img.shields.io/bundlephobia/minzip/avoid-nodes-edge)](https://bundlephobia.com/package/avoid-nodes-edge)
+[![npm](https://img.shields.io/npm/v/avoid-nodes-edge)](https://www.npmjs.com/package/avoid-nodes-edge) [![npm bundle size](https://img.shields.io/bundlephobia/minzip/avoid-nodes-edge)](https://bundlephobia.com/package/avoid-nodes-edge) [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/awaisshah228)
 
 Orthogonal edge routing for [React Flow](https://reactflow.dev/) — edges automatically route around nodes using [libavoid-js](https://github.com/nicknisi/libavoid-js) (WASM). All WASM and routing computation runs exclusively in a **Web Worker**, keeping the main thread free and your UI smooth.
 

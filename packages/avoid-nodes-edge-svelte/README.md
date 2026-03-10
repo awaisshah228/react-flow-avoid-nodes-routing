@@ -2,7 +2,7 @@
 
 **[GitHub](https://github.com/awaisshah228/react-flow-avoid-nodes-routing/tree/turbo-package)** · **[Svelte Demo](https://svelte-demo-beta.vercel.app/)**
 
-[![npm](https://img.shields.io/npm/v/avoid-nodes-edge-svelte)](https://www.npmjs.com/package/avoid-nodes-edge-svelte) [![npm bundle size](https://img.shields.io/bundlephobia/minzip/avoid-nodes-edge-svelte)](https://bundlephobia.com/package/avoid-nodes-edge-svelte)
+[![npm](https://img.shields.io/npm/v/avoid-nodes-edge-svelte)](https://www.npmjs.com/package/avoid-nodes-edge-svelte) [![npm bundle size](https://img.shields.io/bundlephobia/minzip/avoid-nodes-edge-svelte)](https://bundlephobia.com/package/avoid-nodes-edge-svelte) [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/awaisshah228)
 
 Orthogonal edge routing for [Svelte Flow](https://svelteflow.dev/) — edges automatically route around nodes using [libavoid-js](https://github.com/nicknisi/libavoid-js) (WASM). All WASM and routing computation runs exclusively in a **Web Worker**, keeping the main thread free and your UI smooth.
 
