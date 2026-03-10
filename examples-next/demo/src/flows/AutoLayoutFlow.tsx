@@ -54,10 +54,10 @@ export default function AutoLayoutFlow() {
         spacing: settings.layoutSpacing,
       });
       setNodes(laid);
-      requestAnimationFrame(() => requestAnimationFrame(() => {
+      setTimeout(() => {
         resetRouting();
-        fitView({ duration: 300 });
-      }));
+        fitView({ duration: 300, padding: 0.1 });
+      }, 50);
     },
     [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting, fitView]
   );
