@@ -16,7 +16,8 @@
 
   const dispatch = createEventDispatcher();
 
-  let open = typeof window !== "undefined" && window.innerWidth >= 768;
+  const mobile = typeof window !== "undefined" && window.innerWidth < 768;
+  let open = !mobile;
 
   function onSlider(key: string, e: Event) {
     const val = Number((e.target as HTMLInputElement).value);
@@ -175,6 +176,13 @@
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     font-size: 13px;
+  }
+
+  @media (max-width: 767px) {
+    .panel {
+      top: 90px;
+      max-height: calc(100vh - 100px);
+    }
   }
 
   .header {
