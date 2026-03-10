@@ -4,8 +4,9 @@
   import SubflowsFlow from "./flows/SubflowsFlow.svelte";
   import AutoLayoutFlow from "./flows/AutoLayoutFlow.svelte";
   import AutoLayoutGroupsFlow from "./flows/AutoLayoutGroupsFlow.svelte";
+  import StressTestFlow from "./flows/StressTestFlow.svelte";
 
-  type Tab = "basic" | "group" | "subflows" | "elk" | "auto-layout-groups";
+  type Tab = "basic" | "group" | "subflows" | "elk" | "auto-layout-groups" | "stress";
 
   let tab: Tab = "basic";
 
@@ -15,6 +16,7 @@
     { id: "subflows", label: "Subflows" },
     { id: "elk", label: "Auto Layout" },
     { id: "auto-layout-groups", label: "Auto Layout + Groups" },
+    { id: "stress", label: "Stress Test (200)" },
   ];
 </script>
 
@@ -30,6 +32,8 @@
       <AutoLayoutFlow />
     {:else if tab === "auto-layout-groups"}
       <AutoLayoutGroupsFlow />
+    {:else if tab === "stress"}
+      <StressTestFlow />
     {/if}
   {/key}
 
