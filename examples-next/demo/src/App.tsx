@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
+import { Analytics } from "@vercel/analytics/react";
 import "@xyflow/react/dist/style.css";
 
 import Flow, { type ExampleTab } from "./flows/Flow";
@@ -59,6 +60,7 @@ export default function App() {
   };
 
   return (
+    <>
     <ReactFlowProvider key={tab}>
       {renderFlow()}
       <div style={tabBarStyle}>
@@ -70,5 +72,7 @@ export default function App() {
         <TabButton label="Stress Test (200)" active={tab === "stress"} onClick={() => setTab("stress")} />
       </div>
     </ReactFlowProvider>
+    <Analytics />
+    </>
   );
 }

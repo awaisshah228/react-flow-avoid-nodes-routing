@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^2.0.4",
+    "@vercel/analytics": "^1.6.1",
     "@xyflow/react": "^12.7.0",
     "avoid-nodes-edge": "*",
     "d3-hierarchy": "^3.1.2",
