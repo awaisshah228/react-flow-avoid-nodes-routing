@@ -598,6 +598,12 @@ This is the expected fallback while the worker loads WASM. Once loaded, edges wi
 
 Make sure the node has `type` set to something other than `"group"`. Group nodes are treated as containers, not obstacles.
 
+## Sponsor
+
+If this package saves you time, consider supporting its development:
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/awaisshah228)
+
 ## License
 
 MIT
