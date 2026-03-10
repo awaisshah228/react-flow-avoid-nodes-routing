@@ -3,14 +3,16 @@
    * AvoidNodesEdge — Svelte Flow edge component for orthogonal routing via libavoid-js WASM.
    * Reads routed paths from the avoidRoutes store; falls back to a straight line.
    */
-  import { BaseEdge } from "@xyflow/svelte";
+  import { BaseEdge, getSmoothStepPath } from "@xyflow/svelte";
   import { avoidRoutesLoaded, avoidRoutes } from "./store";
 
   export let id: string;
   export let sourceX: number;
   export let sourceY: number;
+  export let sourcePosition: string | undefined = undefined;
   export let targetX: number;
   export let targetY: number;
+  export let targetPosition: string | undefined = undefined;
   export let markerEnd: string | undefined = undefined;
   export let markerStart: string | undefined = undefined;
   export let style: string | undefined = undefined;
@@ -19,17 +21,26 @@
   $: route = $avoidRoutes[id];
   $: loaded = $avoidRoutesLoaded;
 
+  $: fallback = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition: (sourcePosition as any) ?? "bottom",
+    targetX,
+    targetY,
+    targetPosition: (targetPosition as any) ?? "top",
+  });
+
   $: label = (data?.label as string) ?? "";
   $: strokeColor = (data?.strokeColor as string) ?? "#94a3b8";
   $: strokeWidth = (data?.strokeWidth as number) ?? 1.5;
-  $: strokeDasharray = (data?.strokeDasharray as string | undefined) ?? (!loaded || !route ? "12,4" : undefined);
+  $: strokeDasharray = (data?.strokeDasharray as string | undefined) ?? (!loaded || !route ? "6,3" : undefined);
 
   $: edgePath = loaded && route
     ? route.path
-    : `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
+    : fallback[0];
 
-  $: labelX = loaded && route ? route.labelX : (sourceX + targetX) / 2;
-  $: labelY = loaded && route ? route.labelY : (sourceY + targetY) / 2;
+  $: labelX = loaded && route ? route.labelX : fallback[1];
+  $: labelY = loaded && route ? route.labelY : fallback[2];
 
   $: edgeStyle = `stroke: ${strokeColor}; stroke-width: ${strokeWidth};${strokeDasharray ? ` stroke-dasharray: ${strokeDasharray};` : ""}${style ? ` ${style}` : ""}`;
 </script>
