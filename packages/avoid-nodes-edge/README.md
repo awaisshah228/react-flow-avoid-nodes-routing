@@ -4,6 +4,14 @@
 
 [![npm](https://img.shields.io/npm/v/avoid-nodes-edge)](https://www.npmjs.com/package/avoid-nodes-edge) [![npm bundle size](https://img.shields.io/bundlephobia/minzip/avoid-nodes-edge)](https://bundlephobia.com/package/avoid-nodes-edge) [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/awaisshah228)
 
+If this package saves you time, consider supporting its development:
+
+**USDC (Solana):** `59FhVxK3uxABiJ9VzXtCoyCxqq4nhoZDBtUV3gEkiexo`
+
+<img src="https://raw.githubusercontent.com/awaisshah228/react-flow-avoid-nodes-routing/turbo-package/assets/solana-donate-qr.png" width="200" alt="Solana USDC QR Code" />
+
+---
+
 Orthogonal edge routing for [React Flow](https://reactflow.dev/) — edges automatically route around nodes using [libavoid-js](https://github.com/nicknisi/libavoid-js) (WASM). All WASM and routing computation runs exclusively in a **Web Worker**, keeping the main thread free and your UI smooth.
 
 > **Using Svelte Flow?** Check out [avoid-nodes-edge-svelte](https://www.npmjs.com/package/avoid-nodes-edge-svelte) — the same routing engine, built for Svelte Flow.
