@@ -1,7 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
-  SelectionMode,
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
@@ -14,40 +13,26 @@ import {
   type EdgeChange,
   type Connection,
   ProOptions,
+  useReactFlow,
 } from "@xyflow/react";
 
 import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
 import { resolveCollisions } from "../utils/resolve-collisions";
-import { SettingsPanel, type Settings } from "../SettingsPanel";
+import { AutoLayoutSettingsPanel, type AutoLayoutSettings } from "../SettingsPanel";
 import GroupNode from "../GroupNode";
 import SelectedNodesToolbar from "../SelectedNodesToolbar";
-import { basicNodes, basicEdges } from "../initialElementsBasic";
-import { nodes as groupNodes, edges as groupEdges } from "../initialElements";
-import { subflowNodes, subflowEdges } from "../initialElementsSubflows";
+import { dagNodes, dagEdges } from "../initialElementsDAG";
+import { runAutoLayoutWithGroups } from "../utils/auto-layout";
 
 const edgeTypes = { avoidNodes: AvoidNodesEdge };
 const nodeTypes = { group: GroupNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
-export type ExampleTab = "basic" | "group" | "subflows" | "dag" | "tree" | "elk" | "auto-layout-groups" | "stress";
-
-const initialNodesForTab: Record<string, Node[]> = {
-  basic: basicNodes,
-  group: groupNodes,
-  subflows: subflowNodes,
-};
-const initialEdgesForTab: Record<string, Edge[]> = {
-  basic: basicEdges,
-  group: groupEdges,
-  subflows: subflowEdges,
-};
-
-export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
-  const hasGroups = tab === "group" || tab === "subflows";
-  const [nodes, setNodes] = useState<Node[]>(initialNodesForTab[tab]);
-  const [edges, setEdges] = useState<Edge[]>(initialEdgesForTab[tab]);
-  const [settings, setSettings] = useState<Settings>({
+export default function DAGFlow() {
+  const [nodes, setNodes] = useState<Node[]>(dagNodes);
+  const [edges, setEdges] = useState<Edge[]>(dagEdges);
+  const [settings, setSettings] = useState<AutoLayoutSettings>({
     edgeRounding: 8,
     edgeToEdgeSpacing: 10,
     edgeToNodeSpacing: 12,
@@ -55,9 +40,42 @@ export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
     shouldSplitEdgesNearHandle: true,
     autoBestSideConnection: true,
     resolveCollisions: true,
+    layoutDirection: "TB",
+    layoutAlgorithm: "dagre",
+    layoutSpacing: 60,
   });
 
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
+  const { fitView } = useReactFlow();
+  const didLayout = useRef(false);
+
+  const applyLayout = useCallback(
+    async (currentNodes: Node[]) => {
+      const laid = await runAutoLayoutWithGroups(currentNodes, edges, {
+        direction: settings.layoutDirection,
+        algorithm: settings.layoutAlgorithm,
+        spacing: settings.layoutSpacing,
+      });
+      setNodes(laid);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        resetRouting();
+        fitView({ duration: 300, padding: 0.1 });
+      }));
+    },
+    [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting, fitView]
+  );
+
+  useEffect(() => {
+    if (!didLayout.current) {
+      const timer = setTimeout(() => {
+        didLayout.current = true;
+        applyLayout(nodes);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    applyLayout(nodes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
@@ -105,6 +123,17 @@ export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
     []
   );
 
+  const onLayoutChange = useCallback(
+    (key: string, value: string | number) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  const onReLayout = useCallback(() => {
+    applyLayout(nodes);
+  }, [applyLayout, nodes]);
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -121,14 +150,17 @@ export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
       maxZoom={100}
       proOptions={proOptions}
       selectNodesOnDrag={false}
-      multiSelectionKeyCode="Shift"
-      selectionMode={SelectionMode.Partial}
     >
       <Background />
       <Controls />
       <MiniMap />
-      {hasGroups && <SelectedNodesToolbar />}
-      <SettingsPanel settings={settings} onChange={onSettingChange} />
+      <SelectedNodesToolbar />
+      <AutoLayoutSettingsPanel
+        settings={settings}
+        onChange={onSettingChange}
+        onLayoutChange={onLayoutChange}
+        onReLayout={onReLayout}
+      />
     </ReactFlow>
   );
 }

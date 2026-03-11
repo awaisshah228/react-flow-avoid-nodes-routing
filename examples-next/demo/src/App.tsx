@@ -7,6 +7,8 @@ import Flow, { type ExampleTab } from "./flows/Flow";
 import AutoLayoutFlow from "./flows/AutoLayoutFlow";
 import AutoLayoutGroupsFlow from "./flows/AutoLayoutGroupsFlow";
 import StressTestFlow from "./flows/StressTestFlow";
+import DAGFlow from "./flows/DAGFlow";
+import TreeFlow from "./flows/TreeFlow";
 
 const tabBarStyle: React.CSSProperties = {
   position: "absolute",
@@ -52,6 +54,8 @@ export default function App() {
 
   const renderFlow = () => {
     switch (tab) {
+      case "dag": return <DAGFlow />;
+      case "tree": return <TreeFlow />;
       case "elk": return <AutoLayoutFlow />;
       case "auto-layout-groups": return <AutoLayoutGroupsFlow />;
       case "stress": return <StressTestFlow />;
@@ -67,6 +71,8 @@ export default function App() {
         <TabButton label="Basic" active={tab === "basic"} onClick={() => setTab("basic")} />
         <TabButton label="Groups" active={tab === "group"} onClick={() => setTab("group")} />
         <TabButton label="Subflows" active={tab === "subflows"} onClick={() => setTab("subflows")} />
+        <TabButton label="Complex DAG" active={tab === "dag"} onClick={() => setTab("dag")} />
+        <TabButton label="Tree (Circles)" active={tab === "tree"} onClick={() => setTab("tree")} />
         <TabButton label="Auto Layout" active={tab === "elk"} onClick={() => setTab("elk")} />
         <TabButton label="Auto Layout + Groups" active={tab === "auto-layout-groups"} onClick={() => setTab("auto-layout-groups")} />
         <TabButton label="Stress Test (200)" active={tab === "stress"} onClick={() => setTab("stress")} />
