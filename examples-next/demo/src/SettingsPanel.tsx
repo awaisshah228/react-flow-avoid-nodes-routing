@@ -85,7 +85,7 @@ export function SettingsPanel({
 }) {
   const [open, setOpen] = useState(() => !isMobile());
   const sliders = [
-    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
+    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 200 },
     { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
     { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
     { key: "diagramGridSize", label: "Diagram Grid Size", min: 0, max: 48 },
@@ -114,7 +114,13 @@ export function SettingsPanel({
                   onChange={(e) => onChange(key, Number(e.target.value))}
                   style={{ width: 100 }}
                 />
-                <span style={{ minWidth: 28, textAlign: "right" }}>{settings[key]}</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={settings[key]}
+                  onChange={(e) => onChange(key, Math.max(0, Number(e.target.value)))}
+                  style={{ width: 48, textAlign: "right", padding: "2px 4px", borderRadius: 4, border: "1px solid #ccc", fontSize: 12 }}
+                />
               </div>
             </div>
           ))}
@@ -139,7 +145,7 @@ export function AutoLayoutSettingsPanel({
   onReLayout: () => void;
 }) {
   const sliders = [
-    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
+    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 200 },
     { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
     { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
   ] as const;
@@ -194,7 +200,13 @@ export function AutoLayoutSettingsPanel({
             onChange={(e) => onLayoutChange("layoutSpacing", Number(e.target.value))}
             style={{ width: 100 }}
           />
-          <span style={{ minWidth: 28, textAlign: "right" }}>{settings.layoutSpacing}</span>
+          <input
+            type="number"
+            min={0}
+            value={settings.layoutSpacing}
+            onChange={(e) => onLayoutChange("layoutSpacing", Math.max(0, Number(e.target.value)))}
+            style={{ width: 48, textAlign: "right", padding: "2px 4px", borderRadius: 4, border: "1px solid #ccc", fontSize: 12 }}
+          />
         </div>
       </div>
       <div style={{ marginBottom: 12 }}>
@@ -229,7 +241,13 @@ export function AutoLayoutSettingsPanel({
               onChange={(e) => onChange(key, Number(e.target.value))}
               style={{ width: 100 }}
             />
-            <span style={{ minWidth: 28, textAlign: "right" }}>{settings[key]}</span>
+            <input
+              type="number"
+              min={0}
+              value={settings[key]}
+              onChange={(e) => onChange(key, Math.max(0, Number(e.target.value)))}
+              style={{ width: 48, textAlign: "right", padding: "2px 4px", borderRadius: 4, border: "1px solid #ccc", fontSize: 12 }}
+            />
           </div>
         </div>
       ))}

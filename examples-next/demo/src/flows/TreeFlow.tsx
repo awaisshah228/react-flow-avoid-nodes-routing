@@ -20,6 +20,7 @@ import {
 
 import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
+import { CurvedAvoidEdge } from "../CurvedAvoidEdge";
 import { resolveCollisions } from "../utils/resolve-collisions";
 import { AutoLayoutSettingsPanel, type AutoLayoutSettings } from "../SettingsPanel";
 import GroupNode from "../GroupNode";
@@ -27,20 +28,23 @@ import SelectedNodesToolbar from "../SelectedNodesToolbar";
 import { treeNodes, treeEdges } from "../initialElementsTree";
 import { runAutoLayoutWithGroups } from "../utils/auto-layout";
 
-type EdgeStyle = "avoidNodes" | "default" | "smoothstep" | "straight";
+type EdgeStyle = "avoidNodes" | "curvedAvoid" | "default" | "smoothstep" | "straight";
 
-const edgeTypeMap = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const edgeTypeMap: Record<EdgeStyle, any> = {
   avoidNodes: { avoidNodes: AvoidNodesEdge },
+  curvedAvoid: { curvedAvoid: CurvedAvoidEdge },
   default: {},
   smoothstep: { smoothstep: SmoothStepEdge },
   straight: { straight: StraightEdge },
-} as const;
+};
 
 const nodeTypes = { group: GroupNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
 const edgeStyleLabels: { value: EdgeStyle; label: string }[] = [
-  { value: "avoidNodes", label: "Avoid Nodes (libavoid)" },
+  { value: "avoidNodes", label: "Avoid Nodes" },
+  { value: "curvedAvoid", label: "Curved Avoid" },
   { value: "default", label: "Bezier" },
   { value: "smoothstep", label: "Smooth Step" },
   { value: "straight", label: "Straight" },
@@ -55,6 +59,7 @@ export default function TreeFlow() {
   const [nodes, setNodes] = useState<Node[]>(treeNodes);
   const [edges, setEdges] = useState<Edge[]>(treeEdges);
   const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>("avoidNodes");
+  const prevRoundingRef = useRef(8);
   const [settings, setSettings] = useState<AutoLayoutSettings>({
     edgeRounding: 8,
     edgeToEdgeSpacing: 10,
@@ -69,9 +74,14 @@ export default function TreeFlow() {
   });
 
   const styledEdges = useMemo(() => applyEdgeType(edges, edgeStyle), [edges, edgeStyle]);
+  // For curvedAvoid, the router needs edges typed as "avoidNodes" to compute routes
+  const routerEdges = useMemo(
+    () => edgeStyle === "curvedAvoid" ? applyEdgeType(edges, "avoidNodes") : styledEdges,
+    [edges, edgeStyle, styledEdges]
+  );
   const edgeTypes = useMemo(() => edgeTypeMap[edgeStyle] ?? {}, [edgeStyle]);
 
-  const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, styledEdges, settings);
+  const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, routerEdges, settings);
   const { fitView } = useReactFlow();
   const didLayout = useRef(false);
 
@@ -103,9 +113,9 @@ export default function TreeFlow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing]);
 
-  // Reset routing when edge style changes back to avoidNodes
+  // Reset routing when edge style uses avoid-nodes routing
   useEffect(() => {
-    if (edgeStyle === "avoidNodes") {
+    if (edgeStyle === "avoidNodes" || edgeStyle === "curvedAvoid") {
       requestAnimationFrame(() => resetRouting());
     }
   }, [edgeStyle, resetRouting]);
@@ -134,7 +144,7 @@ export default function TreeFlow() {
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => addEdge({ ...params, type: edgeStyle === "default" ? undefined : edgeStyle }, eds));
-      if (edgeStyle === "avoidNodes") deferredReset();
+      if (edgeStyle === "avoidNodes" || edgeStyle === "curvedAvoid") deferredReset();
     },
     [deferredReset, edgeStyle]
   );
@@ -207,7 +217,31 @@ export default function TreeFlow() {
         {edgeStyleLabels.map(({ value, label }) => (
           <button
             key={value}
-            onClick={() => setEdgeStyle(value)}
+            onClick={() => {
+              setEdgeStyle((prev) => {
+                if (value === "curvedAvoid" && prev !== "curvedAvoid") {
+                  // Save current settings and switch to optimal curved avoid defaults
+                  prevRoundingRef.current = settings.edgeRounding;
+                  setSettings((s) => ({
+                    ...s,
+                    edgeRounding: 0,
+                    edgeToEdgeSpacing: 16,
+                    edgeToNodeSpacing: 20,
+                    layoutAlgorithm: "elk" as const,
+                    layoutDirection: "LR" as const,
+                  }));
+                } else if (value !== "curvedAvoid" && prev === "curvedAvoid") {
+                  // Restore previous settings
+                  setSettings((s) => ({
+                    ...s,
+                    edgeRounding: prevRoundingRef.current,
+                    edgeToEdgeSpacing: 10,
+                    edgeToNodeSpacing: 12,
+                  }));
+                }
+                return value;
+              });
+            }}
             style={{
               padding: "5px 12px",
               borderRadius: 5,
