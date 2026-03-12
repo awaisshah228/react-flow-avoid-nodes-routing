@@ -132,11 +132,11 @@
   }
 
   function handleNodeDragStop() {
-    if (settings.resolveCollisions) {
-      const resolved = resolveCollisions($nodes, { margin: 20, maxIterations: 50 });
-      nodes.set(resolved);
-    }
-    router.reset($nodes, routerEdges, routerOptions);
+    const current = settings.resolveCollisions
+      ? resolveCollisions($nodes, { margin: 20, maxIterations: 50 })
+      : $nodes;
+    if (settings.resolveCollisions) nodes.set(current);
+    router.reset(current, routerEdges, routerOptions);
   }
 
   function onSettingChange(e: CustomEvent<{ key: string; value: number | boolean }>) {

@@ -94,7 +94,7 @@
   function handleNodeDragStop() {
     const resolved = resolveCollisions($nodes, { margin: 20, maxIterations: 50 });
     nodes.set(resolved);
-    router.reset($nodes, routerEdges, routerOptions);
+    router.reset(resolved, routerEdges, routerOptions);
   }
 
   function setEdgeStyle(value: EdgeStyle) {
