@@ -148,6 +148,8 @@ export function useAvoidNodesRouterFromWorker(
       let hasPosition = false;
       let hasDimensions = false;
       let hasAddOrRemove = false;
+      const addedNodes: Node[] = [];
+      const removedIds: string[] = [];
 
       for (const c of changes) {
         if (c.type === "position") {
@@ -156,21 +158,58 @@ export function useAvoidNodesRouterFromWorker(
         } else if (c.type === "dimensions") {
           hasDimensions = true;
           pendingChangeIdsRef.current.add(c.id);
-        } else if (c.type === "add" || c.type === "remove") {
+        } else if (c.type === "add") {
           hasAddOrRemove = true;
+          addedNodes.push(c.item);
+        } else if (c.type === "remove") {
+          hasAddOrRemove = true;
+          removedIds.push(c.id);
         }
       }
 
       if (!hasPosition && !hasDimensions && !hasAddOrRemove) return;
 
-      // On first dimensions change (initial measurement) or structural changes,
-      // do a full reset so all nodes get correct measured bounds.
-      const needsFullReset = hasAddOrRemove || (hasDimensions && !nodesMeasuredRef.current);
+      // On first dimensions change (initial measurement), do a full reset
+      // so all nodes get correct measured bounds.
+      const needsFullReset = hasDimensions && !nodesMeasuredRef.current;
 
       if (needsFullReset) {
         if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
         pendingChangeIdsRef.current.clear();
-        // Use rAF to ensure React has flushed state (nodesRef is up to date).
+        debounceRef.current = setTimeout(() => {
+          debounceRef.current = null;
+          requestAnimationFrame(() => sendReset());
+        }, DEBOUNCE_ROUTING_MS);
+        return;
+      }
+
+      // Incremental add/remove: send granular commands to the worker
+      if (hasAddOrRemove && didResetRef.current) {
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        pendingChangeIdsRef.current.clear();
+        debounceRef.current = setTimeout(() => {
+          debounceRef.current = null;
+          requestAnimationFrame(() => {
+            for (const id of removedIds) {
+              post({ command: "remove", id });
+            }
+            for (const node of addedNodes) {
+              post({ command: "add", cell: node });
+            }
+            // If there were both adds/removes and we still have pending position changes, flush those too
+            if (!hasPosition && !hasDimensions) return;
+            const ids = Array.from(pendingChangeIdsRef.current);
+            pendingChangeIdsRef.current.clear();
+            if (ids.length > 0) sendIncrementalChanges(ids);
+          });
+        }, DEBOUNCE_ROUTING_MS);
+        return;
+      }
+
+      // If add/remove but no initial reset yet, do full reset
+      if (hasAddOrRemove) {
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        pendingChangeIdsRef.current.clear();
         debounceRef.current = setTimeout(() => {
           debounceRef.current = null;
           requestAnimationFrame(() => sendReset());
