@@ -8,6 +8,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import { useAvoidNodesPath } from "./useAvoidNodesPath";
+import { useAvoidRoutesStore } from "./store";
 
 /** Gap (px) between parallel avoid-nodes edges (same source/target). */
 const PARALLEL_EDGE_GAP = 22;
@@ -178,18 +179,19 @@ function buildBezierCatmullRomPath(points: Pt[], baseTension = 0.2): string {
 /** Build path from waypoints using the specified algorithm. */
 function buildPathFromPoints(
   points: Pt[],
-  type: string
+  type: string,
+  bendSize = DEFAULT_BEND_SIZE
 ): string {
   switch (type) {
     case "linear": return buildLinearPath(points);
     case "catmull-rom": return buildCatmullRomPath(points);
     case "bezier-catmull-rom": return buildBezierCatmullRomPath(points);
     case "bezier": return buildBezierCatmullRomPath(points);
-    case "polyline": return buildPolylinePath(points);
+    case "polyline": return buildPolylinePath(points, bendSize);
     case "step":
     case "orthogonal":
     default:
-      return buildStepPath(points);
+      return buildStepPath(points, bendSize);
   }
 }
 
@@ -312,6 +314,7 @@ function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
   } = props;
 
   const { getEdges } = useReactFlow();
+  const edgeRounding = useAvoidRoutesStore((s) => s.edgeRounding);
 
   const edgeData = data as AvoidNodesEdgeData | undefined;
   const [basePath, labelX, labelY, isRouted, routePoints, routeConnectorType] = useAvoidNodesPath({
@@ -368,10 +371,10 @@ function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
   // using the selected algorithm (step, linear, catmull-rom, bezier-catmull-rom).
   const resolvedBasePath = useMemo(() => {
     if (routePoints && routePoints.length >= 2) {
-      return buildPathFromPoints(routePoints, connectorType);
+      return buildPathFromPoints(routePoints, connectorType, edgeRounding || DEFAULT_BEND_SIZE);
     }
     return basePath;
-  }, [routePoints, basePath, connectorType]);
+  }, [routePoints, basePath, connectorType, edgeRounding]);
 
   const hasParallelOffset =
     parallelEdgeOffset.offsetX !== 0 || parallelEdgeOffset.offsetY !== 0;

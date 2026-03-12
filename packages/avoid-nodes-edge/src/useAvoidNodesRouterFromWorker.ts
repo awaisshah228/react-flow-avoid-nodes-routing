@@ -85,6 +85,7 @@ export function useAvoidNodesRouterFromWorker(
   optsRef.current = opts;
 
   const setRoutes = useAvoidRoutesStore((s) => s.setRoutes);
+  const setEdgeRounding = useAvoidRoutesStore((s) => s.setEdgeRounding);
   const setActions = useAvoidRouterActionsStore((s) => s.setActions);
 
   const { post, workerLoaded } = useAvoidWorker({
@@ -202,6 +203,10 @@ export function useAvoidNodesRouterFromWorker(
     });
     return () => setActions({ resetRouting: () => {}, updateRoutesForNodeId: () => {} });
   }, [resetRouting, updateRoutingForNodeIds, setActions]);
+
+  useEffect(() => {
+    setEdgeRounding(opts.edgeRounding ?? 0);
+  }, [opts.edgeRounding, setEdgeRounding]);
 
   useEffect(() => {
     if (workerLoaded) sendReset();
