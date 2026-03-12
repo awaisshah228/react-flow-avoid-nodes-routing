@@ -230,6 +230,7 @@ export default function TreeFlow() {
                     edgeRounding: 0,
                     edgeToEdgeSpacing: 16,
                     edgeToNodeSpacing: 20,
+                    connectorType: "polyline",
                     layoutAlgorithm: "elk" as const,
                     layoutDirection: "LR" as const,
                   }));
@@ -240,6 +241,7 @@ export default function TreeFlow() {
                     edgeRounding: prevRoundingRef.current,
                     edgeToEdgeSpacing: 10,
                     edgeToNodeSpacing: 12,
+                    connectorType: "orthogonal",
                   }));
                 }
                 return value;
