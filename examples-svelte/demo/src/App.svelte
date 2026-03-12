@@ -10,7 +10,22 @@
 
   type Tab = "basic" | "group" | "subflows" | "dag" | "tree" | "elk" | "auto-layout-groups" | "stress";
 
-  let tab: Tab = "basic";
+  const validTabs: Tab[] = ["basic", "group", "subflows", "dag", "tree", "elk", "auto-layout-groups", "stress"];
+
+  function getInitialTab(): Tab {
+    const params = new URLSearchParams(window.location.search);
+    const example = params.get("example") as Tab | null;
+    return example && validTabs.includes(example) ? example : "basic";
+  }
+
+  let tab: Tab = getInitialTab();
+
+  function setTab(newTab: Tab) {
+    tab = newTab;
+    const url = new URL(window.location.href);
+    url.searchParams.set("example", newTab);
+    window.history.replaceState({}, "", url.toString());
+  }
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "basic", label: "Basic" },
@@ -50,7 +65,7 @@
       <button
         class="tab-btn"
         class:active={tab === t.id}
-        on:click={() => (tab = t.id)}
+        on:click={() => setTab(t.id)}
       >
         {t.label}
       </button>

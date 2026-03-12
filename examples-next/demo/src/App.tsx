@@ -56,8 +56,23 @@ function TabButton({
   );
 }
 
+const validTabs: ExampleTab[] = ["basic", "group", "subflows", "dag", "tree", "elk", "auto-layout-groups", "stress"];
+
+function getInitialTab(): ExampleTab {
+  const params = new URLSearchParams(window.location.search);
+  const example = params.get("example") as ExampleTab | null;
+  return example && validTabs.includes(example) ? example : "basic";
+}
+
 export default function App() {
-  const [tab, setTab] = useState<ExampleTab>("basic");
+  const [tab, setTabState] = useState<ExampleTab>(getInitialTab);
+
+  const setTab = (newTab: ExampleTab) => {
+    setTabState(newTab);
+    const url = new URL(window.location.href);
+    url.searchParams.set("example", newTab);
+    window.history.replaceState({}, "", url.toString());
+  };
 
   const renderFlow = () => {
     switch (tab) {
