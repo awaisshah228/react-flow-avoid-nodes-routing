@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.10.1",
-    "avoid-nodes-edge": "^0.2.6",
-    "libavoid-js": "0.4.5",
+    "avoid-nodes-edge": "^0.2.9",
+    "libavoid-js": "0.5.0-beta.5",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
