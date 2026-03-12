@@ -28,8 +28,8 @@ export interface UseAvoidNodesRouterOptions {
   shouldSplitEdgesNearHandle?: boolean;
   autoBestSideConnection?: boolean;
   debounceMs?: number;
-  /** Edge path style: "orthogonal" (default), "bezier" (smooth curved), or "polyline" (diagonal). */
-  connectorType?: "orthogonal" | "bezier" | "polyline";
+  /** Edge path style: "orthogonal" (default), "bezier" (smooth curved), "polyline" (diagonal), etc. */
+  connectorType?: "orthogonal" | "bezier" | "polyline" | "step" | "linear" | "catmull-rom" | "bezier-catmull-rom";
   onCollisionsResolved?: (nodes: Node[]) => void;
 }
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { LayoutDirection, LayoutAlgorithmName } from "./utils/auto-layout";
 
-type ConnectorType = "orthogonal" | "bezier" | "polyline";
+type ConnectorType = "orthogonal" | "bezier" | "polyline" | "step" | "linear" | "catmull-rom" | "bezier-catmull-rom";
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
