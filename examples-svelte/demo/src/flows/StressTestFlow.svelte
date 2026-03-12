@@ -2,6 +2,9 @@
   import { writable } from "svelte/store";
   import {
     SvelteFlow,
+    SmoothStepEdge,
+    StraightEdge,
+    BezierEdge,
     Background,
     Controls,
     MiniMap,
@@ -15,11 +18,46 @@
   import { createAvoidNodesRouter } from "avoid-nodes-edge-svelte";
   import { resolveCollisions } from "../utils/resolve-collisions";
   import { stressNodes, stressEdges } from "../initialElementsStress";
+  import CurvedAvoidEdge from "../CurvedAvoidEdge.svelte";
 
-  const edgeTypes: EdgeTypes = { avoidNodes: AvoidNodesEdge as any };
+  import { onDestroy } from "svelte";
+
+  type EdgeStyle = "avoidNodes" | "curvedAvoid" | "default" | "smoothstep" | "straight";
+
+  const edgeTypeMap: Record<EdgeStyle, EdgeTypes> = {
+    avoidNodes: { avoidNodes: AvoidNodesEdge as any },
+    curvedAvoid: { curvedAvoid: CurvedAvoidEdge as any },
+    default: { default: BezierEdge as any },
+    smoothstep: { smoothstep: SmoothStepEdge as any },
+    straight: { straight: StraightEdge as any },
+  };
+
+  const edgeStyleLabels: { value: EdgeStyle; label: string }[] = [
+    { value: "avoidNodes", label: "Avoid Nodes" },
+    { value: "curvedAvoid", label: "Curved Avoid" },
+    { value: "default", label: "Bezier" },
+    { value: "smoothstep", label: "Smooth Step" },
+    { value: "straight", label: "Straight" },
+  ];
+
+  let edgeStyle: EdgeStyle = "avoidNodes";
+  let prevRounding = 8;
+
+  $: edgeTypes = edgeTypeMap[edgeStyle] ?? {};
+
+  function applyEdgeType(edgeList: Edge[], style: EdgeStyle): Edge[] {
+    const type = style === "default" ? undefined : style;
+    return edgeList.map((e) => ({ ...e, type }));
+  }
 
   const nodes = writable<Node[]>(stressNodes);
-  const edges = writable<Edge[]>(stressEdges);
+  const baseEdges = writable<Edge[]>(stressEdges);
+
+  const styledEdges = writable<Edge[]>(applyEdgeType(stressEdges, edgeStyle));
+  $: styledEdges.set(applyEdgeType($baseEdges, edgeStyle) as Edge[]);
+  $: routerEdges = edgeStyle === "curvedAvoid"
+    ? applyEdgeType($baseEdges, "avoidNodes")
+    : $styledEdges;
 
   let settings = {
     edgeRounding: 8,
@@ -28,7 +66,7 @@
     shouldSplitEdgesNearHandle: true,
     autoBestSideConnection: true,
     debounceMs: 0,
-    connectorType: "orthogonal" as "orthogonal" | "bezier" | "polyline",
+    connectorType: "orthogonal" as "orthogonal" | "bezier" | "polyline" | "step" | "linear" | "catmull-rom" | "bezier-catmull-rom",
   };
 
   let panelOpen = true;
@@ -47,7 +85,7 @@
     connectorType: settings.connectorType,
   };
 
-  $: router.reset($nodes, $edges, routerOptions);
+  $: router.reset($nodes, routerEdges, routerOptions);
 
   function handleNodeDrag() {
     router.updateNodes($nodes);
@@ -56,14 +94,39 @@
   function handleNodeDragStop() {
     const resolved = resolveCollisions($nodes, { margin: 20, maxIterations: 50 });
     nodes.set(resolved);
-    router.reset($nodes, $edges, routerOptions);
+    router.reset($nodes, routerEdges, routerOptions);
   }
 
-  import { onDestroy } from "svelte";
+  function setEdgeStyle(value: EdgeStyle) {
+    if (value === "curvedAvoid" && edgeStyle !== "curvedAvoid") {
+      prevRounding = settings.edgeRounding;
+      settings = {
+        ...settings,
+        edgeRounding: 0,
+        edgeToEdgeSpacing: 16,
+        edgeToNodeSpacing: 20,
+        connectorType: "polyline",
+      };
+    } else if (value !== "curvedAvoid" && edgeStyle === "curvedAvoid") {
+      settings = {
+        ...settings,
+        edgeRounding: prevRounding,
+        edgeToEdgeSpacing: 10,
+        edgeToNodeSpacing: 12,
+        connectorType: "orthogonal",
+      };
+    }
+    edgeStyle = value;
+    styledEdges.set(applyEdgeType($baseEdges, value));
+    if (value === "avoidNodes" || value === "curvedAvoid") {
+      requestAnimationFrame(() => router.reset($nodes, routerEdges, routerOptions));
+    }
+  }
+
   onDestroy(() => router.destroy());
 
   $: nodeCount = $nodes.length;
-  $: edgeCount = $edges.length;
+  $: edgeCount = $baseEdges.length;
 </script>
 
 <div class="stats">
@@ -88,6 +151,10 @@
         <option value="orthogonal">Orthogonal</option>
         <option value="bezier">Bezier</option>
         <option value="polyline">Polyline</option>
+        <option value="step">Step</option>
+        <option value="linear">Linear</option>
+        <option value="catmull-rom">Catmull-Rom</option>
+        <option value="bezier-catmull-rom">Bezier Catmull-Rom</option>
       </select>
     </div>
     <div class="setting-row">
@@ -149,7 +216,7 @@
 
 <SvelteFlow
   {nodes}
-  {edges}
+  edges={styledEdges}
   {edgeTypes}
   fitView
   on:nodedrag={handleNodeDrag}
@@ -158,6 +225,19 @@
   <Background />
   <Controls />
   <MiniMap />
+
+  <!-- Edge style picker -->
+  <div class="edge-picker">
+    {#each edgeStyleLabels as { value, label }}
+      <button
+        class="edge-btn"
+        class:active={edgeStyle === value}
+        on:click={() => setEdgeStyle(value)}
+      >
+        {label}
+      </button>
+    {/each}
+  </div>
 </SvelteFlow>
 
 <style>
@@ -241,5 +321,40 @@
   .toggle-wrap button.active {
     background: #333;
     color: #fff;
+  }
+
+  .edge-picker {
+    position: absolute;
+    bottom: 24px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 6px 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    overflow-x: auto;
+  }
+
+  .edge-btn {
+    padding: 5px 12px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .edge-btn.active {
+    background: #333;
+    color: #fff;
+    font-weight: 600;
   }
 </style>
