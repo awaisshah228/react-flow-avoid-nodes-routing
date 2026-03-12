@@ -105,6 +105,10 @@
           <option value="orthogonal">Orthogonal</option>
           <option value="bezier">Bezier</option>
           <option value="polyline">Polyline</option>
+          <option value="step">Step</option>
+          <option value="linear">Linear</option>
+          <option value="catmull-rom">Catmull-Rom</option>
+          <option value="bezier-catmull-rom">Bezier Catmull-Rom</option>
         </select>
       </div>
 
@@ -140,6 +144,10 @@
           <option value="orthogonal">Orthogonal</option>
           <option value="bezier">Bezier</option>
           <option value="polyline">Polyline</option>
+          <option value="step">Step</option>
+          <option value="linear">Linear</option>
+          <option value="catmull-rom">Catmull-Rom</option>
+          <option value="bezier-catmull-rom">Bezier Catmull-Rom</option>
         </select>
       </div>
 

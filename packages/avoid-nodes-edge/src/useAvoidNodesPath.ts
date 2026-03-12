@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { getStraightPath, getSmoothStepPath, Position as RFPosition } from "@xyflow/react";
 import { useAvoidRoutesStore } from "./store";
 import { EDGE_BORDER_RADIUS } from "./constants";
+import type { ConnectorType } from "./routing-core";
 
 export type Position = "left" | "right" | "top" | "bottom";
 
@@ -26,12 +27,13 @@ export interface UseAvoidNodesPathParams {
 }
 
 /**
- * Returns [path, labelX, labelY, wasRouted] for an avoid-nodes edge.
+ * Returns [path, labelX, labelY, wasRouted, points] for an avoid-nodes edge.
  * Reads from the avoid store (set by the worker); falls back to straight/smooth-step.
+ * `points` contains the raw waypoints from the router (available when routed).
  */
 export function useAvoidNodesPath(
   params: UseAvoidNodesPathParams
-): [path: string, labelX: number, labelY: number, wasRouted: boolean] {
+): [path: string, labelX: number, labelY: number, wasRouted: boolean, points?: { x: number; y: number }[], connectorType?: ConnectorType] {
   const {
     id,
     sourceX,
@@ -48,7 +50,7 @@ export function useAvoidNodesPath(
 
   return useMemo(() => {
     if (loaded && route) {
-      return [route.path, route.labelX, route.labelY, true];
+      return [route.path, route.labelX, route.labelY, true, route.points, route.connectorType];
     }
 
     if (sourcePosition && targetPosition) {
@@ -62,7 +64,7 @@ export function useAvoidNodesPath(
         borderRadius: params.borderRadius ?? EDGE_BORDER_RADIUS,
         offset: offset ?? 20,
       });
-      return [smoothPath, sLabelX, sLabelY, false];
+      return [smoothPath, sLabelX, sLabelY, false, undefined];
     }
 
     const [straightPath, labelX, labelY] = getStraightPath({
@@ -71,6 +73,6 @@ export function useAvoidNodesPath(
       targetX,
       targetY,
     });
-    return [straightPath, labelX, labelY, false];
+    return [straightPath, labelX, labelY, false, undefined];
   }, [loaded, route, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, offset, params.borderRadius]);
 }

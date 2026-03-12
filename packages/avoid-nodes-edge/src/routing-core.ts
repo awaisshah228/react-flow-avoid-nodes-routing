@@ -5,9 +5,9 @@
 
 // ---- Types ----
 
-export type AvoidRoute = { path: string; labelX: number; labelY: number };
+export type AvoidRoute = { path: string; labelX: number; labelY: number; points?: { x: number; y: number }[]; connectorType?: ConnectorType };
 
-export type ConnectorType = "orthogonal" | "bezier" | "polyline";
+export type ConnectorType = "orthogonal" | "bezier" | "polyline" | "step" | "linear" | "catmull-rom" | "bezier-catmull-rom";
 
 export type AvoidRouterOptions = {
   shapeBufferDistance?: number;
@@ -583,11 +583,11 @@ export function readRoutesFromConnRefs(
   for (const [edgeId, points] of edgePoints) {
     const path = connType === "bezier"
       ? polylineToBezierPath(points.length, (i) => points[i], { gridSize: gridSize || undefined })
-      : polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius: connType === "polyline" ? 0 : cornerRadius });
+      : polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
     const mid = Math.floor(points.length / 2);
     const midP = points[mid];
     const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
-    result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
+    result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y, points, connectorType: connType };
   }
   return result;
 }
@@ -598,7 +598,12 @@ export function createAvoidRouter(Avoid: AvoidLibInstance, options?: AvoidRouter
   const k = c(Avoid);
   const shapeBuffer = options?.shapeBufferDistance ?? 8;
   const idealNudging = options?.idealNudgingDistance ?? 10;
-  const router = new Avoid.Router(k.OrthogonalRouting);
+  const connType = options?.connectorType ?? "orthogonal";
+  // Use both routing flags when polyline so libavoid can produce diagonal segments
+  const routerFlags = connType === "polyline"
+    ? (k.OrthogonalRouting | k.PolyLineRouting)
+    : k.OrthogonalRouting;
+  const router = new Avoid.Router(routerFlags);
   router.setRoutingParameter(k.shapeBufferDistance, shapeBuffer);
   router.setRoutingParameter(k.idealNudgingDistance, idealNudging);
   router.setRoutingOption(k.nudgeOrthogonalSegmentsConnectedToShapes, true);
@@ -685,7 +690,9 @@ export function routeAllCore(
       tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
     }
     const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
-    connRef.setRoutingType(c(Avoid).ConnType_Orthogonal);
+    const connTypeOption = options?.connectorType ?? "orthogonal";
+    const constants = c(Avoid);
+    connRef.setRoutingType(connTypeOption === "polyline" ? constants.ConnType_PolyLine : constants.ConnType_Orthogonal);
     connRefs.push({ edgeId: edge.id, connRef });
   }
 

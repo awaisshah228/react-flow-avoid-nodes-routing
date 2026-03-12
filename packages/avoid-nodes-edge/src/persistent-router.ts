@@ -276,7 +276,9 @@ export class PersistentRouter {
     }
 
     const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
-    connRef.setRoutingType(c(Avoid).ConnType_Orthogonal);
+    const connTypeOption = this.currentOptions.connectorType ?? "orthogonal";
+    const constants = c(Avoid);
+    connRef.setRoutingType(connTypeOption === "polyline" ? constants.ConnType_PolyLine : constants.ConnType_Orthogonal);
     return connRef;
   }
 

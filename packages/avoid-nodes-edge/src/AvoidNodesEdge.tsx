@@ -15,6 +15,183 @@ const EDGE_STROKE_WIDTH = 1.5;
 const MIN_EDGE_LENGTH_FOR_LABEL_PX = 72;
 const LABEL_WIDTH_APPROX_PX_PER_CHAR = 7;
 const LABEL_PADDING_PX = 32;
+const DEFAULT_BEND_SIZE = 5;
+
+// ── Path builders (matches editable-edge-pro-example algorithms) ──
+
+type Pt = { x: number; y: number };
+
+function ptDist(a: Pt, b: Pt): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/** Linear: straight line segments between waypoints. */
+function buildLinearPath(points: Pt[]): string {
+  if (points.length < 2) return "";
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    d += ` L ${points[i].x} ${points[i].y}`;
+  }
+  return d;
+}
+
+/** Step: orthogonal lines with rounded corners via quadratic Bezier (Q). */
+function buildStepPath(points: Pt[], bendSize = DEFAULT_BEND_SIZE): string {
+  if (points.length < 2) return "";
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const a = points[i - 1], b = points[i], c = points[i + 1];
+    const bend = Math.min(ptDist(a, b) / 2, ptDist(b, c) / 2, bendSize);
+    const { x, y } = b;
+    if ((a.x === x && x === c.x) || (a.y === y && y === c.y)) {
+      d += ` L ${x} ${y}`;
+    } else if (a.y === y) {
+      const xDir = a.x < c.x ? -1 : 1;
+      const yDir = a.y < c.y ? -1 : 1;
+      d += ` L ${x + bend * xDir} ${y} Q ${x} ${y} ${x} ${y + bend * -yDir}`;
+    } else {
+      const xDir = a.x < c.x ? -1 : 1;
+      const yDir = a.y < c.y ? -1 : 1;
+      d += ` L ${x} ${y + bend * yDir} Q ${x} ${y} ${x + bend * -xDir} ${y}`;
+    }
+  }
+  const last = points[points.length - 1];
+  d += ` L ${last.x} ${last.y}`;
+  return d;
+}
+
+/** Polyline: arbitrary-angle lines with rounded corners via quadratic Bezier (Q). */
+function buildPolylinePath(points: Pt[], bendSize = DEFAULT_BEND_SIZE): string {
+  if (points.length < 2) return "";
+  if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const a = points[i - 1], b = points[i], c = points[i + 1];
+    const dAB = ptDist(a, b);
+    const dBC = ptDist(b, c);
+    const bend = Math.min(dAB / 2, dBC / 2, bendSize);
+    if (bend < 0.5) {
+      d += ` L ${b.x} ${b.y}`;
+      continue;
+    }
+    // Point on segment a→b at distance `bend` before b
+    const t1 = bend / dAB;
+    const qx1 = b.x + (a.x - b.x) * t1;
+    const qy1 = b.y + (a.y - b.y) * t1;
+    // Point on segment b→c at distance `bend` after b
+    const t2 = bend / dBC;
+    const qx2 = b.x + (c.x - b.x) * t2;
+    const qy2 = b.y + (c.y - b.y) * t2;
+    d += ` L ${qx1} ${qy1} Q ${b.x} ${b.y} ${qx2} ${qy2}`;
+  }
+  const last = points[points.length - 1];
+  d += ` L ${last.x} ${last.y}`;
+  return d;
+}
+
+/**
+ * Catmull-Rom: smooth spline using Catmull-Rom → cubic Bezier conversion.
+ * b1 = (-p0 + 6*p1 + p2) / 6, b2 = (p1 + 6*p2 - p3) / 6
+ */
+function buildCatmullRomPath(points: Pt[]): string {
+  if (points.length < 2) return "";
+  if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+    const b1x = (-p0.x + 6 * p1.x + p2.x) / 6;
+    const b1y = (-p0.y + 6 * p1.y + p2.y) / 6;
+    const b2x = (p1.x + 6 * p2.x - p3.x) / 6;
+    const b2y = (p1.y + 6 * p2.y - p3.y) / 6;
+    d += ` C ${b1x} ${b1y}, ${b2x} ${b2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
+/**
+ * Bezier Catmull-Rom: smooth spline with adaptive tension and overshoot clamping.
+ * Same as polylineToBezierPath but operating on client-side waypoints.
+ */
+function buildBezierCatmullRomPath(points: Pt[], baseTension = 0.2): string {
+  if (points.length < 2) return "";
+  if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+
+  // Deduplicate near-identical consecutive points
+  const deduped: Pt[] = [];
+  for (const p of points) {
+    const last = deduped[deduped.length - 1];
+    if (!last || Math.abs(last.x - p.x) > 1 || Math.abs(last.y - p.y) > 1) {
+      deduped.push(p);
+    }
+  }
+  // Remove collinear intermediate points
+  let pts: Pt[];
+  if (deduped.length <= 2) {
+    pts = deduped;
+  } else {
+    pts = [deduped[0]];
+    for (let i = 1; i < deduped.length - 1; i++) {
+      const prev = deduped[i - 1], curr = deduped[i], next = deduped[i + 1];
+      const sameX = Math.abs(prev.x - curr.x) < 1 && Math.abs(curr.x - next.x) < 1;
+      const sameY = Math.abs(prev.y - curr.y) < 1 && Math.abs(curr.y - next.y) < 1;
+      if (!sameX || !sameY) pts.push(curr);
+    }
+    pts.push(deduped[deduped.length - 1]);
+  }
+  if (pts.length < 2) return pts.length === 1 ? `M ${pts[0].x} ${pts[0].y}` : "";
+  if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
+
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const segLen = ptDist(p1, p2);
+    const tension = segLen < 40 ? baseTension * 0.3 : segLen < 80 ? baseTension * 0.6 : baseTension;
+    let cp1x = p1.x + (p2.x - p0.x) * tension;
+    let cp1y = p1.y + (p2.y - p0.y) * tension;
+    let cp2x = p2.x - (p3.x - p1.x) * tension;
+    let cp2y = p2.y - (p3.y - p1.y) * tension;
+    const maxReach = segLen * 0.4;
+    const cp1Dist = ptDist(p1, { x: cp1x, y: cp1y });
+    if (cp1Dist > maxReach && cp1Dist > 0) {
+      const s = maxReach / cp1Dist;
+      cp1x = p1.x + (cp1x - p1.x) * s;
+      cp1y = p1.y + (cp1y - p1.y) * s;
+    }
+    const cp2Dist = ptDist(p2, { x: cp2x, y: cp2y });
+    if (cp2Dist > maxReach && cp2Dist > 0) {
+      const s = maxReach / cp2Dist;
+      cp2x = p2.x + (cp2x - p2.x) * s;
+      cp2y = p2.y + (cp2y - p2.y) * s;
+    }
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
+/** Build path from waypoints using the specified algorithm. */
+function buildPathFromPoints(
+  points: Pt[],
+  type: string
+): string {
+  switch (type) {
+    case "linear": return buildLinearPath(points);
+    case "catmull-rom": return buildCatmullRomPath(points);
+    case "bezier-catmull-rom": return buildBezierCatmullRomPath(points);
+    case "bezier": return buildBezierCatmullRomPath(points);
+    case "polyline": return buildPolylinePath(points);
+    case "step":
+    case "orthogonal":
+    default:
+      return buildStepPath(points);
+  }
+}
 
 /** ER relationship types. */
 type ERRelation = "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many" | null;
@@ -137,7 +314,7 @@ function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
   const { getEdges } = useReactFlow();
 
   const edgeData = data as AvoidNodesEdgeData | undefined;
-  const [basePath, labelX, labelY, isRouted] = useAvoidNodesPath({
+  const [basePath, labelX, labelY, isRouted, routePoints, routeConnectorType] = useAvoidNodesPath({
     id,
     sourceX,
     sourceY,
@@ -155,7 +332,7 @@ function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
   const flowDirection = edgeData?.flowDirection ?? "mono";
   const label = edgeData?.label ?? "";
   const erRelation = edgeData?.erRelation ?? null;
-  const connectorType: ConnectorType = edgeData?.connectorType ?? "default";
+  const connectorType = (routeConnectorType ?? edgeData?.connectorType ?? "orthogonal") as string;
 
   // ── Markers ──
   const dataMarkerEnd = edgeData?.markerEnd as string | undefined;
@@ -187,6 +364,15 @@ function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
     return { offsetX: perpX * amount, offsetY: perpY * amount };
   }, [source, target, id, sourceX, sourceY, targetX, targetY, getEdges]);
 
+  // When we have raw waypoints from the router, build the path client-side
+  // using the selected algorithm (step, linear, catmull-rom, bezier-catmull-rom).
+  const resolvedBasePath = useMemo(() => {
+    if (routePoints && routePoints.length >= 2) {
+      return buildPathFromPoints(routePoints, connectorType);
+    }
+    return basePath;
+  }, [routePoints, basePath, connectorType]);
+
   const hasParallelOffset =
     parallelEdgeOffset.offsetX !== 0 || parallelEdgeOffset.offsetY !== 0;
   const edgePath = hasParallelOffset
@@ -200,7 +386,7 @@ function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
           parallelEdgeOffset.offsetY
         )
       : applyAvoidPathParallelOffset(
-          basePath,
+          resolvedBasePath,
           sourceX,
           sourceY,
           targetX,
@@ -208,7 +394,7 @@ function AvoidNodesEdgeComponent(props: EdgeProps<Edge<AvoidNodesEdgeData>>) {
           parallelEdgeOffset.offsetX,
           parallelEdgeOffset.offsetY
         )
-    : basePath;
+    : resolvedBasePath;
 
   const effectiveStrokeDasharray = strokeDasharray ?? (!isRouted ? "12,4" : undefined);
 
