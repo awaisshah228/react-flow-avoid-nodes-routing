@@ -246,11 +246,19 @@ export async function loadWasmWithRetry(
 
 // ---- Geometry helpers ----
 
+function parseCssDimension(style: string, prop: string): number | undefined {
+  const re = new RegExp(`${prop}\\s*:\\s*([\\d.]+)`, "i");
+  const m = style.match(re);
+  return m ? Number(m[1]) : undefined;
+}
+
 export function getNodeBounds(node: FlowNode): { x: number; y: number; w: number; h: number } {
   const x = node.position?.x ?? 0;
   const y = node.position?.y ?? 0;
-  const w = Number((node.measured?.width ?? node.width ?? (node.style as { width?: number })?.width) ?? 150);
-  const h = Number((node.measured?.height ?? node.height ?? (node.style as { height?: number })?.height) ?? 50);
+  const styleObj = typeof node.style === "object" ? node.style : undefined;
+  const styleStr = typeof node.style === "string" ? node.style : undefined;
+  const w = Number(node.measured?.width ?? node.width ?? styleObj?.width ?? (styleStr ? parseCssDimension(styleStr, "width") : undefined) ?? 150);
+  const h = Number(node.measured?.height ?? node.height ?? styleObj?.height ?? (styleStr ? parseCssDimension(styleStr, "height") : undefined) ?? 50);
   return { x, y, w, h };
 }
 
