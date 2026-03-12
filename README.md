@@ -31,11 +31,25 @@ Built with [React Flow v12](https://reactflow.dev/), [Svelte Flow](https://svelt
 | --- | --- | --- |
 | Basic | React | `examples-next/basic` |
 | Demo | React | `examples-next/demo` |
+| Complex DAG | React | `examples-next/demo` (tab) |
 | Collision Demo | React | `examples-next/collision-demo` |
 | Remote Basic | React | `examples-next/remote-basic` |
 | Next.js Basic | React (Next.js) | `examples-next/nextjs-latest-basic` |
 | Basic | Svelte | `examples-svelte/basic` |
 | Demo | Svelte | `examples-svelte/demo` |
+
+### Complex DAG Example
+
+The **Complex DAG** tab in the React demo showcases a real-world scenario that layout libraries like Dagre and ELK often struggle with:
+
+- **Multiple root nodes** — three independent entry points (API Gateway, Scheduler, Event Bus) forming disjoint trees
+- **Nested subflows** — groups within groups (e.g. "Normalization" inside "Ingestion Layer", "Evaluation" inside "ML Pipeline")
+- **Cross-boundary edges** — edges connecting nodes inside different subflows (e.g. Enrich -> Feature Eng. spans two top-level groups)
+- **Convergent sinks** — multiple paths merge into shared output nodes (Data Lake)
+- **Auto-layout with groups** — uses recursive dagre/ELK layout that properly sizes nested groups based on their children, with a re-layout button to fix positions after dragging
+- **Collision resolution** — bottom-up sibling collision resolution that works at every nesting depth
+
+This example uses `runAutoLayoutWithGroups()` which recursively lays out children bottom-up: innermost groups first, then uses their computed sizes when laying out the parent level.
 
 ## Features
 

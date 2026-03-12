@@ -37,14 +37,14 @@
   }
 
   const sliders = [
-    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
+    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 200 },
     { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
     { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
     { key: "diagramGridSize", label: "Diagram Grid Size", min: 0, max: 48 },
   ] as const;
 
   const layoutSliders = [
-    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 48 },
+    { key: "edgeRounding", label: "Edge Rounding", min: 0, max: 200 },
     { key: "edgeToEdgeSpacing", label: "Edge-to-Edge Spacing", min: 0, max: 24 },
     { key: "edgeToNodeSpacing", label: "Edge-to-Node Spacing", min: 0, max: 48 },
   ] as const;
@@ -90,7 +90,7 @@
         <label>Node Spacing</label>
         <div class="slider-group">
           <input type="range" min={20} max={120} value={layoutSpacing} on:input={(e) => onLayoutChange("layoutSpacing", Number(e.currentTarget.value))} />
-          <span class="value">{layoutSpacing}</span>
+          <input type="number" class="num-input" min={0} value={layoutSpacing} on:input={(e) => onLayoutChange("layoutSpacing", Math.max(0, Number(e.currentTarget.value)))} />
         </div>
       </div>
 
@@ -103,7 +103,7 @@
           <label>{label}</label>
           <div class="slider-group">
             <input type="range" {min} {max} value={values[key]} on:input={(e) => onSlider(key, e)} />
-            <span class="value">{values[key]}</span>
+            <input type="number" class="num-input" min={0} value={values[key]} on:input={(e) => onSlider(key, e)} />
           </div>
         </div>
       {/each}
@@ -129,7 +129,7 @@
           <label>{label}</label>
           <div class="slider-group">
             <input type="range" {min} {max} value={values[key]} on:input={(e) => onSlider(key, e)} />
-            <span class="value">{values[key]}</span>
+            <input type="number" class="num-input" min={0} value={values[key]} on:input={(e) => onSlider(key, e)} />
           </div>
         </div>
       {/each}
@@ -164,7 +164,7 @@
 <style>
   .panel {
     position: absolute;
-    top: 12px;
+    top: 52px;
     right: 12px;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
@@ -173,16 +173,9 @@
     z-index: 10;
     min-width: 240px;
     max-width: min(320px, calc(100vw - 24px));
-    max-height: calc(100vh - 40px);
+    max-height: calc(100vh - 64px);
     overflow-y: auto;
     font-size: 13px;
-  }
-
-  @media (max-width: 767px) {
-    .panel {
-      top: 90px;
-      max-height: calc(100vh - 100px);
-    }
   }
 
   .header {
@@ -224,9 +217,13 @@
     width: 100px;
   }
 
-  .value {
-    min-width: 28px;
+  .num-input {
+    width: 48px;
     text-align: right;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 12px;
   }
 
   .btn-group {

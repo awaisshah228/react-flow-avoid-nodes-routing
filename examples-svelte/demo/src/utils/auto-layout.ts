@@ -9,6 +9,9 @@ import Elk, { type ElkNode } from "elkjs/lib/elk.bundled.js";
 import dagre from "@dagrejs/dagre";
 import { stratify, tree, type HierarchyPointNode } from "d3-hierarchy";
 
+const DEFAULT_NODE_WIDTH = 150;
+const DEFAULT_NODE_HEIGHT = 50;
+
 export type LayoutDirection = "TB" | "LR" | "BT" | "RL";
 export type LayoutAlgorithmName = "elk" | "dagre" | "d3-hierarchy";
 
@@ -198,73 +201,69 @@ async function d3HierarchyLayout(nodes: Node[], edges: Edge[], direction: Layout
 }
 
 // ---------------------------------------------------------------------------
-// ELK with Groups (compound nodes)
+// ELK with Groups (compound nodes) — recursive for arbitrary nesting
 // ---------------------------------------------------------------------------
 const GROUP_PADDING = 40;
 
 async function elkLayoutWithGroups(nodes: Node[], edges: Edge[], direction: LayoutDirection, spacing: number): Promise<Node[]> {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const groupNodes = nodes.filter((n) => n.type === "group");
-  const groupIds = new Set(groupNodes.map((n) => n.id));
-  const childrenByGroup = new Map<string, Node[]>();
-  const topLevelNodes: Node[] = [];
+  const groupIds = new Set(nodes.filter((n) => n.type === "group").map((n) => n.id));
 
+  // Build parent → children map (ALL nodes, including nested groups)
+  const childrenByParent = new Map<string, Node[]>();
   for (const node of nodes) {
-    if (node.type === "group") continue;
-    if (node.parentId && groupIds.has(node.parentId)) {
-      if (!childrenByGroup.has(node.parentId)) childrenByGroup.set(node.parentId, []);
-      childrenByGroup.get(node.parentId)!.push(node);
-    } else {
-      topLevelNodes.push(node);
-    }
+    const key = node.parentId ?? "__root__";
+    if (!childrenByParent.has(key)) childrenByParent.set(key, []);
+    childrenByParent.get(key)!.push(node);
   }
 
-  const internalEdgesByGroup = new Map<string, typeof edges>();
-  const rootEdges: typeof edges = [];
-
+  // Classify edges by their deepest common parent group
+  const edgesByParent = new Map<string, Edge[]>();
   for (const edge of edges) {
     const srcNode = nodeById.get(edge.source);
     const tgtNode = nodeById.get(edge.target);
-    const srcGroup = srcNode?.parentId && groupIds.has(srcNode.parentId) ? srcNode.parentId : undefined;
-    const tgtGroup = tgtNode?.parentId && groupIds.has(tgtNode.parentId) ? tgtNode.parentId : undefined;
-
-    if (srcGroup && tgtGroup && srcGroup === tgtGroup) {
-      if (!internalEdgesByGroup.has(srcGroup)) internalEdgesByGroup.set(srcGroup, []);
-      internalEdgesByGroup.get(srcGroup)!.push(edge);
-    } else {
-      rootEdges.push(edge);
-    }
+    const srcParent = srcNode?.parentId ?? "__root__";
+    const tgtParent = tgtNode?.parentId ?? "__root__";
+    // If both in same parent, edge is internal to that parent
+    const key = srcParent === tgtParent ? srcParent : "__root__";
+    if (!edgesByParent.has(key)) edgesByParent.set(key, []);
+    edgesByParent.get(key)!.push(edge);
   }
 
   const elkDir = getElkDirection(direction);
-  const elkChildren: ElkNode[] = [];
 
-  for (const group of groupNodes) {
-    const children = childrenByGroup.get(group.id) ?? [];
-    const groupInternalEdges = internalEdgesByGroup.get(group.id) ?? [];
+  // Recursively build ELK node tree
+  function buildElkNode(nodeId: string): ElkNode {
+    const node = nodeById.get(nodeId)!;
+    const children = childrenByParent.get(nodeId) ?? [];
+    const internalEdges = edgesByParent.get(nodeId) ?? [];
 
-    elkChildren.push({
-      id: group.id,
+    if (children.length === 0 || !groupIds.has(nodeId)) {
+      // Leaf node
+      const { width, height } = getNodeDims(node);
+      return { id: node.id, width, height };
+    }
+
+    // Group node — recurse into children
+    return {
+      id: node.id,
       layoutOptions: {
         "elk.padding": `[top=${GROUP_PADDING},left=${GROUP_PADDING},bottom=${GROUP_PADDING},right=${GROUP_PADDING}]`,
       },
-      children: children.map((child) => {
-        const { width, height } = getNodeDims(child);
-        return { id: child.id, width, height };
-      }),
-      edges: groupInternalEdges.map((edge) => ({
+      children: children.map((child) => buildElkNode(child.id)),
+      edges: internalEdges.map((edge) => ({
         id: edge.id,
         sources: [edge.source],
         targets: [edge.target],
       })),
-    });
+    };
   }
 
-  for (const node of topLevelNodes) {
-    const { width, height } = getNodeDims(node);
-    elkChildren.push({ id: node.id, width, height });
-  }
+  // Build top-level ELK children
+  const rootChildren = childrenByParent.get("__root__") ?? [];
+  const elkChildren = rootChildren.map((node) => buildElkNode(node.id));
 
+  // All edges go on root with INCLUDE_CHILDREN — ELK resolves hierarchy
   const allElkEdges = edges.map((edge) => ({
     id: edge.id,
     sources: [edge.source],
@@ -286,18 +285,22 @@ async function elkLayoutWithGroups(nodes: Node[], edges: Edge[], direction: Layo
 
   const root = await elk.layout(graph);
 
+  // Recursively collect positions and sizes from ELK result
   const positions = new Map<string, { x: number; y: number }>();
   const groupSizes = new Map<string, { width: number; height: number }>();
 
-  for (const elkNode of root.children ?? []) {
-    positions.set(elkNode.id, { x: elkNode.x!, y: elkNode.y! });
-    if (groupIds.has(elkNode.id)) {
-      groupSizes.set(elkNode.id, { width: elkNode.width!, height: elkNode.height! });
-      for (const child of elkNode.children ?? []) {
-        positions.set(child.id, { x: child.x!, y: child.y! });
+  function collectPositions(elkNodes: ElkNode[]) {
+    for (const elkNode of elkNodes) {
+      positions.set(elkNode.id, { x: elkNode.x!, y: elkNode.y! });
+      if (groupIds.has(elkNode.id)) {
+        groupSizes.set(elkNode.id, { width: elkNode.width!, height: elkNode.height! });
+      }
+      if (elkNode.children) {
+        collectPositions(elkNode.children);
       }
     }
   }
+  collectPositions(root.children ?? []);
 
   return nodes.map((node) => {
     const pos = positions.get(node.id);
@@ -307,6 +310,7 @@ async function elkLayoutWithGroups(nodes: Node[], edges: Edge[], direction: Layo
       return {
         ...node,
         position: pos,
+        ...(size ? { width: size.width, height: size.height } : {}),
         style: size
           ? setCssSize(typeof node.style === "string" ? node.style : undefined, size.width, size.height)
           : node.style,
@@ -317,54 +321,100 @@ async function elkLayoutWithGroups(nodes: Node[], edges: Edge[], direction: Layo
 }
 
 // ---------------------------------------------------------------------------
-// Dagre with Groups
+// Dagre with Groups — recursive for arbitrary nesting
 // ---------------------------------------------------------------------------
 async function dagreLayoutWithGroups(nodes: Node[], edges: Edge[], direction: LayoutDirection, spacing: number): Promise<Node[]> {
-  const groupNodes = nodes.filter((n) => n.type === "group");
-  const groupIds = new Set(groupNodes.map((n) => n.id));
-  const childrenByGroup = new Map<string, Node[]>();
-  const topLevelNodes: Node[] = [];
-
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  // Build parent → children map (ALL nodes including nested groups)
+  const childrenByParent = new Map<string, Node[]>();
   for (const node of nodes) {
-    if (node.type === "group") continue;
-    if (node.parentId && groupIds.has(node.parentId)) {
-      if (!childrenByGroup.has(node.parentId)) childrenByGroup.set(node.parentId, []);
-      childrenByGroup.get(node.parentId)!.push(node);
-    } else {
-      topLevelNodes.push(node);
-    }
+    const key = node.parentId ?? "__root__";
+    if (!childrenByParent.has(key)) childrenByParent.set(key, []);
+    childrenByParent.get(key)!.push(node);
   }
 
-  const childPositions = new Map<string, { x: number; y: number }>();
-  const computedGroupSizes = new Map<string, { width: number; height: number }>();
+  // Results: positions relative to parent, and computed group sizes
+  const resultPositions = new Map<string, { x: number; y: number }>();
+  const computedSizes = new Map<string, { width: number; height: number }>();
 
-  for (const group of groupNodes) {
-    const children = childrenByGroup.get(group.id) ?? [];
+  /**
+   * Recursively layout children within a parent (bottom-up).
+   * Returns the computed size of this parent's content area.
+   */
+  function layoutGroup(parentId: string): { width: number; height: number } {
+    const children = childrenByParent.get(parentId) ?? [];
     if (children.length === 0) {
-      computedGroupSizes.set(group.id, getNodeDims(group));
-      continue;
+      const node = nodeById.get(parentId);
+      return node ? getNodeDims(node) : { width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT };
     }
 
+    // First, recursively layout any nested groups so we know their sizes
+    for (const child of children) {
+      if (child.type === "group") {
+        const size = layoutGroup(child.id);
+        computedSizes.set(child.id, size);
+      }
+    }
+
+    // Find edges where both endpoints are direct children of this parent
+    const childIds = new Set(children.map((c) => c.id));
     const internalEdges = edges.filter(
-      (e) => children.some((c) => c.id === e.source) && children.some((c) => c.id === e.target)
+      (e) => childIds.has(e.source) && childIds.has(e.target)
     );
 
+    // Layout children with dagre
     const g = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
     g.setGraph({ rankdir: direction, nodesep: spacing, ranksep: spacing });
 
     for (const child of children) {
-      const { width, height } = getNodeDims(child);
-      g.setNode(child.id, { width, height });
+      const size = child.type === "group"
+        ? (computedSizes.get(child.id) ?? getNodeDims(child))
+        : getNodeDims(child);
+      g.setNode(child.id, { width: size.width, height: size.height });
     }
+
+    // Also add edges that cross from a child to a descendant of another child
+    // mapped to the direct child level
+    const nodeToDirectChild = new Map<string, string>();
+    for (const child of children) {
+      nodeToDirectChild.set(child.id, child.id);
+      // Map all descendants of this child to this child
+      const mapDescendants = (id: string) => {
+        const desc = childrenByParent.get(id) ?? [];
+        for (const d of desc) {
+          nodeToDirectChild.set(d.id, child.id);
+          mapDescendants(d.id);
+        }
+      };
+      mapDescendants(child.id);
+    }
+
+    const addedEdges = new Set<string>();
+    for (const edge of edges) {
+      const src = nodeToDirectChild.get(edge.source);
+      const tgt = nodeToDirectChild.get(edge.target);
+      if (!src || !tgt || src === tgt) continue;
+      if (!childIds.has(src) || !childIds.has(tgt)) continue;
+      const key = `${src}->${tgt}`;
+      if (addedEdges.has(key)) continue;
+      addedEdges.add(key);
+      g.setEdge(src, tgt);
+    }
+
     for (const edge of internalEdges) {
-      g.setEdge(edge.source, edge.target);
+      const key = `${edge.source}->${edge.target}`;
+      if (!addedEdges.has(key)) {
+        addedEdges.add(key);
+        g.setEdge(edge.source, edge.target);
+      }
     }
+
     dagre.layout(g);
 
+    // Compute bounding box
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const child of children) {
-      const { x, y } = g.node(child.id);
-      const { width, height } = getNodeDims(child);
+      const { x, y, width, height } = g.node(child.id);
       const left = x - width / 2;
       const top = y - height / 2;
       minX = Math.min(minX, left);
@@ -373,87 +423,38 @@ async function dagreLayoutWithGroups(nodes: Node[], edges: Edge[], direction: La
       maxY = Math.max(maxY, top + height);
     }
 
+    // Store positions relative to parent (with padding offset)
     for (const child of children) {
-      const { x, y } = g.node(child.id);
-      const { width, height } = getNodeDims(child);
-      childPositions.set(child.id, {
+      const { x, y, width, height } = g.node(child.id);
+      resultPositions.set(child.id, {
         x: x - width / 2 - minX + GROUP_PADDING,
         y: y - height / 2 - minY + GROUP_PADDING,
       });
     }
 
-    computedGroupSizes.set(group.id, {
+    return {
       width: maxX - minX + GROUP_PADDING * 2,
       height: maxY - minY + GROUP_PADDING * 2,
-    });
+    };
   }
 
-  const topG = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-  topG.setGraph({ rankdir: direction, nodesep: spacing, ranksep: spacing });
-
-  for (const group of groupNodes) {
-    const size = computedGroupSizes.get(group.id) ?? getNodeDims(group);
-    topG.setNode(group.id, size);
-  }
-  for (const node of topLevelNodes) {
-    const { width, height } = getNodeDims(node);
-    topG.setNode(node.id, { width, height });
-  }
-
-  const topLevelIds = new Set([...groupIds, ...topLevelNodes.map((n) => n.id)]);
-  const nodeToTopLevel = new Map<string, string>();
-  for (const node of nodes) {
-    if (node.type === "group") {
-      nodeToTopLevel.set(node.id, node.id);
-    } else if (node.parentId && groupIds.has(node.parentId)) {
-      nodeToTopLevel.set(node.id, node.parentId);
-    } else {
-      nodeToTopLevel.set(node.id, node.id);
-    }
-  }
-
-  const addedEdges = new Set<string>();
-  for (const edge of edges) {
-    const src = nodeToTopLevel.get(edge.source) ?? edge.source;
-    const tgt = nodeToTopLevel.get(edge.target) ?? edge.target;
-    if (src === tgt) continue;
-    if (!topLevelIds.has(src) || !topLevelIds.has(tgt)) continue;
-    const key = `${src}->${tgt}`;
-    if (addedEdges.has(key)) continue;
-    addedEdges.add(key);
-    topG.setEdge(src, tgt);
-  }
-
-  dagre.layout(topG);
-
-  const topPositions = new Map<string, { x: number; y: number }>();
-  for (const id of [...groupIds, ...topLevelNodes.map((n) => n.id)]) {
-    const laid = topG.node(id);
-    if (laid) {
-      topPositions.set(id, { x: laid.x - laid.width / 2, y: laid.y - laid.height / 2 });
-    }
-  }
+  // Start from root
+  layoutGroup("__root__");
 
   return nodes.map((node) => {
+    const pos = resultPositions.get(node.id);
+    if (!pos) return node;
     if (node.type === "group") {
-      const pos = topPositions.get(node.id);
-      const size = computedGroupSizes.get(node.id);
-      if (!pos) return node;
+      const size = computedSizes.get(node.id);
       return {
         ...node,
         position: pos,
+        ...(size ? { width: size.width, height: size.height } : {}),
         style: size
           ? setCssSize(typeof node.style === "string" ? node.style : undefined, size.width, size.height)
           : node.style,
       };
     }
-    if (node.parentId && groupIds.has(node.parentId)) {
-      const pos = childPositions.get(node.id);
-      if (!pos) return node;
-      return { ...node, position: pos };
-    }
-    const pos = topPositions.get(node.id);
-    if (!pos) return node;
     return { ...node, position: pos };
   });
 }
@@ -493,6 +494,7 @@ export async function runAutoLayoutWithGroups(
     case "dagre":
       return dagreLayoutWithGroups(nodes, edges, direction, spacing);
     case "d3-hierarchy":
+      // D3 hierarchy doesn't support groups well, fall back to dagre with groups
       return dagreLayoutWithGroups(nodes, edges, direction, spacing);
     default:
       return nodes;

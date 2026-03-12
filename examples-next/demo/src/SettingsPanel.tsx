@@ -5,7 +5,7 @@ const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
 const getPanelStyle = (): React.CSSProperties => ({
   position: "absolute",
-  top: isMobile() ? 90 : 12,
+  top: 52,
   right: 12,
   background: "rgba(255, 255, 255, 0.95)",
   borderRadius: 8,
@@ -14,7 +14,7 @@ const getPanelStyle = (): React.CSSProperties => ({
   zIndex: 10,
   minWidth: 240,
   maxWidth: "min(320px, calc(100vw - 24px))",
-  maxHeight: isMobile() ? "calc(100vh - 100px)" : "calc(100vh - 40px)",
+  maxHeight: "calc(100vh - 64px)",
   overflowY: "auto",
   fontSize: 13,
 });

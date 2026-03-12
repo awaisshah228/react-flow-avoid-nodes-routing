@@ -12,13 +12,19 @@ import TreeFlow from "./flows/TreeFlow";
 
 const tabBarStyle: React.CSSProperties = {
   position: "absolute",
-  top: 12,
-  left: 12,
-  right: 12,
+  top: 0,
+  left: 0,
+  right: 0,
   display: "flex",
-  flexWrap: "wrap",
+  alignItems: "center",
   gap: 4,
   zIndex: 20,
+  padding: "8px 12px",
+  overflowX: "auto",
+  background: "rgba(255, 255, 255, 0.85)",
+  backdropFilter: "blur(8px)",
+  borderBottom: "1px solid #e5e5e5",
+  whiteSpace: "nowrap",
 };
 
 function TabButton({
@@ -42,6 +48,7 @@ function TabButton({
         cursor: "pointer",
         fontSize: 13,
         fontWeight: active ? 600 : 400,
+        flexShrink: 0,
       }}
     >
       {label}
@@ -67,7 +74,7 @@ export default function App() {
     <>
     <ReactFlowProvider key={tab}>
       {renderFlow()}
-      <div style={tabBarStyle}>
+      <div className="tab-bar" style={tabBarStyle}>
         <TabButton label="Basic" active={tab === "basic"} onClick={() => setTab("basic")} />
         <TabButton label="Groups" active={tab === "group"} onClick={() => setTab("group")} />
         <TabButton label="Subflows" active={tab === "subflows"} onClick={() => setTab("subflows")} />

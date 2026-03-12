@@ -202,16 +202,18 @@ export default function TreeFlow() {
       <div
         style={{
           position: "absolute",
-          bottom: 12,
-          left: "50%",
-          transform: "translateX(-50%)",
+          bottom: 24,
+          left: 12,
+          right: 12,
           display: "flex",
+          justifyContent: "center",
           gap: 4,
           zIndex: 10,
           background: "rgba(255,255,255,0.95)",
           borderRadius: 8,
           padding: "6px 10px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          overflowX: "auto",
         }}
       >
         {edgeStyleLabels.map(({ value, label }) => (

@@ -5,8 +5,10 @@
   import AutoLayoutFlow from "./flows/AutoLayoutFlow.svelte";
   import AutoLayoutGroupsFlow from "./flows/AutoLayoutGroupsFlow.svelte";
   import StressTestFlow from "./flows/StressTestFlow.svelte";
+  import DAGFlow from "./flows/DAGFlow.svelte";
+  import TreeFlow from "./flows/TreeFlow.svelte";
 
-  type Tab = "basic" | "group" | "subflows" | "elk" | "auto-layout-groups" | "stress";
+  type Tab = "basic" | "group" | "subflows" | "dag" | "tree" | "elk" | "auto-layout-groups" | "stress";
 
   let tab: Tab = "basic";
 
@@ -14,6 +16,8 @@
     { id: "basic", label: "Basic" },
     { id: "group", label: "Groups" },
     { id: "subflows", label: "Subflows" },
+    { id: "dag", label: "Complex DAG" },
+    { id: "tree", label: "Tree (Circles)" },
     { id: "elk", label: "Auto Layout" },
     { id: "auto-layout-groups", label: "Auto Layout + Groups" },
     { id: "stress", label: "Stress Test (200)" },
@@ -28,6 +32,10 @@
       <GroupsFlow />
     {:else if tab === "subflows"}
       <SubflowsFlow />
+    {:else if tab === "dag"}
+      <DAGFlow />
+    {:else if tab === "tree"}
+      <TreeFlow />
     {:else if tab === "elk"}
       <AutoLayoutFlow />
     {:else if tab === "auto-layout-groups"}
@@ -114,18 +122,42 @@
 
   .tab-bar {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    right: 12px;
+    top: 0;
+    left: 0;
+    right: 0;
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
     gap: 4px;
     z-index: 20;
-    pointer-events: none;
+    padding: 8px 12px;
+    overflow-x: auto;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #e5e5e5;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #e5e5e5;
+  }
+
+  .tab-bar::-webkit-scrollbar {
+    height: 6px;
+    display: block !important;
+  }
+
+  .tab-bar::-webkit-scrollbar-track {
+    background: #e5e5e5;
+  }
+
+  .tab-bar::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 6px;
+  }
+
+  .tab-bar::-webkit-scrollbar-thumb:hover {
+    background: #555;
   }
 
   .tab-btn {
-    pointer-events: all;
     padding: 6px 16px;
     border-radius: 6px;
     border: 1px solid #ccc;
@@ -134,6 +166,7 @@
     cursor: pointer;
     font-size: 13px;
     font-weight: 400;
+    flex-shrink: 0;
   }
 
   .tab-btn.active {
