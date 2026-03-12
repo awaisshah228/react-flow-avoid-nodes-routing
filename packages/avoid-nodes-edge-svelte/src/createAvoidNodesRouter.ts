@@ -34,6 +34,7 @@ const DEFAULT_ROUTER_OPTIONS: Required<AvoidRouterOptions> = {
   shouldSplitEdgesNearHandle: true,
   autoBestSideConnection: true,
   debounceMs: 0,
+  connectorType: "orthogonal",
 };
 
 function mergeDefaults(opts?: AvoidRouterOptions): AvoidRouterOptions {
@@ -46,6 +47,7 @@ function mergeDefaults(opts?: AvoidRouterOptions): AvoidRouterOptions {
     shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle ?? DEFAULT_ROUTER_OPTIONS.shouldSplitEdgesNearHandle,
     autoBestSideConnection: opts?.autoBestSideConnection ?? DEFAULT_ROUTER_OPTIONS.autoBestSideConnection,
     debounceMs: opts?.debounceMs ?? DEFAULT_ROUTER_OPTIONS.debounceMs,
+    connectorType: opts?.connectorType,
   };
 }
 

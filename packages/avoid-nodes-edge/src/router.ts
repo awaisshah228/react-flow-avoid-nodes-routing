@@ -13,7 +13,7 @@ import {
 } from "./routing-core";
 
 // Re-export types for public API
-export type { AvoidRoute, AvoidRouterOptions, HandlePosition } from "./routing-core";
+export type { AvoidRoute, AvoidRouterOptions, HandlePosition, ConnectorType } from "./routing-core";
 
 /**
  * AvoidRouter: routes diagram edges around nodes using libavoid-js (WASM).

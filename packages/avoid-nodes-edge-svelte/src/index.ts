@@ -13,7 +13,7 @@ export { avoidRoutesLoaded, avoidRoutes, getRouteForEdge, getRoutes } from "./st
 export { resolveCollisions, hasOverlap } from "./resolve-collisions";
 export type { ResolveCollisionsOptions } from "./resolve-collisions";
 
-export type { AvoidRoute, AvoidRouterOptions, HandlePosition, FlowNode, FlowEdge } from "./routing-core";
+export type { AvoidRoute, AvoidRouterOptions, HandlePosition, ConnectorType, FlowNode, FlowEdge } from "./routing-core";
 export type { AvoidRouterWorkerCommand, AvoidRouterWorkerResponse } from "./worker-messages";
 
 export {

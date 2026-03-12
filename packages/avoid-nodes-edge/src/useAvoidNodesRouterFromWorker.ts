@@ -28,6 +28,8 @@ export interface UseAvoidNodesRouterOptions {
   shouldSplitEdgesNearHandle?: boolean;
   autoBestSideConnection?: boolean;
   debounceMs?: number;
+  /** Edge path style: "orthogonal" (default), "bezier" (smooth curved), or "polyline" (diagonal). */
+  connectorType?: "orthogonal" | "bezier" | "polyline";
   onCollisionsResolved?: (nodes: Node[]) => void;
 }
 
@@ -57,6 +59,7 @@ function toRouterOptions(opts?: UseAvoidNodesRouterOptions): AvoidRouterOptions 
     shouldSplitEdgesNearHandle: opts?.shouldSplitEdgesNearHandle ?? DEFAULT_OPTIONS.shouldSplitEdgesNearHandle,
     autoBestSideConnection: opts?.autoBestSideConnection ?? DEFAULT_OPTIONS.autoBestSideConnection,
     debounceMs: opts?.debounceMs ?? DEFAULT_OPTIONS.debounceMs,
+    connectorType: opts?.connectorType,
   };
 }
 
@@ -209,6 +212,7 @@ export function useAvoidNodesRouterFromWorker(
     opts.diagramGridSize,
     opts.shouldSplitEdgesNearHandle,
     opts.autoBestSideConnection,
+    opts.connectorType,
     sendReset,
   ]);
 

@@ -4,7 +4,7 @@
  */
 
 export { AvoidRouter, routeAll, loadAvoidRouter } from "./router";
-export type { AvoidRoute, AvoidRouterOptions, HandlePosition } from "./router";
+export type { AvoidRoute, AvoidRouterOptions, HandlePosition, ConnectorType } from "./router";
 
 export { useAvoidRoutesStore, useAvoidRouterActionsStore } from "./store";
 export type { AvoidRoutesState, AvoidRouterActions } from "./store";

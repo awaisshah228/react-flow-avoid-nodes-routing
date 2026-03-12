@@ -7,6 +7,8 @@
 
 export type AvoidRoute = { path: string; labelX: number; labelY: number };
 
+export type ConnectorType = "orthogonal" | "bezier" | "polyline";
+
 export type AvoidRouterOptions = {
   shapeBufferDistance?: number;
   idealNudgingDistance?: number;
@@ -16,6 +18,8 @@ export type AvoidRouterOptions = {
   shouldSplitEdgesNearHandle?: boolean;
   autoBestSideConnection?: boolean;
   debounceMs?: number;
+  /** Edge path style: "orthogonal" (default) or "bezier" (smooth curved). */
+  connectorType?: ConnectorType;
 };
 
 export type HandlePosition = "left" | "right" | "top" | "bottom";
@@ -63,7 +67,9 @@ export type AvoidLibInstance = {
     displayRoute: () => { size: () => number; get_ps: (i: number) => { x: number; y: number } };
   };
   OrthogonalRouting: number;
+  PolyLineRouting: number;
   ConnType_Orthogonal: number;
+  ConnType_PolyLine: number;
   ConnDirUp: number;
   ConnDirDown: number;
   ConnDirLeft: number;
@@ -242,6 +248,112 @@ export function polylineToPath(
   return d;
 }
 
+// ---- Bezier path from waypoints ----
+
+/**
+ * Convert orthogonal waypoints to a smooth cubic Bezier spline using
+ * Catmull-Rom → Bezier conversion with adaptive tension.
+ *
+ * Steps:
+ * 1. Deduplicate and remove collinear intermediate points (keep corners only).
+ * 2. For each segment, compute control points from neighboring points.
+ * 3. Clamp control-point reach to prevent overshooting / edge crossings.
+ */
+export function polylineToBezierPath(
+  size: number,
+  getPoint: (i: number) => { x: number; y: number },
+  options: { gridSize?: number; baseTension?: number } = {}
+): string {
+  if (size < 2) return "";
+  const gridSize = options.gridSize ?? 0;
+  const baseTension = options.baseTension ?? 0.2;
+
+  const pt = (i: number) => {
+    const p = getPoint(i);
+    return gridSize > 0 ? snapToGrid(p.x, p.y, gridSize) : p;
+  };
+
+  // Collect raw points
+  const raw: { x: number; y: number }[] = [];
+  for (let i = 0; i < size; i++) raw.push(pt(i));
+
+  // Deduplicate near-identical consecutive points
+  const deduped: { x: number; y: number }[] = [];
+  for (const p of raw) {
+    const last = deduped[deduped.length - 1];
+    if (!last || Math.abs(last.x - p.x) > 1 || Math.abs(last.y - p.y) > 1) {
+      deduped.push(p);
+    }
+  }
+
+  // Remove collinear intermediate points (straight segments)
+  let points: { x: number; y: number }[];
+  if (deduped.length <= 2) {
+    points = deduped;
+  } else {
+    points = [deduped[0]];
+    for (let i = 1; i < deduped.length - 1; i++) {
+      const prev = deduped[i - 1];
+      const curr = deduped[i];
+      const next = deduped[i + 1];
+      const sameX = Math.abs(prev.x - curr.x) < 1 && Math.abs(curr.x - next.x) < 1;
+      const sameY = Math.abs(prev.y - curr.y) < 1 && Math.abs(curr.y - next.y) < 1;
+      if (!sameX || !sameY) points.push(curr);
+    }
+    points.push(deduped[deduped.length - 1]);
+  }
+
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  if (points.length === 2) {
+    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+  }
+
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(b.x - a.x, b.y - a.y);
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+
+    // Adaptive tension: shorter segments get less curvature
+    const segLen = dist(p1, p2);
+    const tension =
+      segLen < 40 ? baseTension * 0.3 :
+      segLen < 80 ? baseTension * 0.6 :
+      baseTension;
+
+    // Catmull-Rom to cubic bezier control points
+    let cp1x = p1.x + (p2.x - p0.x) * tension;
+    let cp1y = p1.y + (p2.y - p0.y) * tension;
+    let cp2x = p2.x - (p3.x - p1.x) * tension;
+    let cp2y = p2.y - (p3.y - p1.y) * tension;
+
+    // Clamp: don't let control points extend past 40% of segment length
+    const maxReach = segLen * 0.4;
+    const cp1Dist = dist(p1, { x: cp1x, y: cp1y });
+    if (cp1Dist > maxReach && cp1Dist > 0) {
+      const scale = maxReach / cp1Dist;
+      cp1x = p1.x + (cp1x - p1.x) * scale;
+      cp1y = p1.y + (cp1y - p1.y) * scale;
+    }
+    const cp2Dist = dist(p2, { x: cp2x, y: cp2y });
+    if (cp2Dist > maxReach && cp2Dist > 0) {
+      const scale = maxReach / cp2Dist;
+      cp2x = p2.x + (cp2x - p2.x) * scale;
+      cp2y = p2.y + (cp2y - p2.y) * scale;
+    }
+
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+
+  return d;
+}
+
 // ---- Handle spacing adjustment ----
 
 export function adjustHandleSpacing(
@@ -324,6 +436,7 @@ export function routeAllCore(
   const gridSize = options?.diagramGridSize ?? 0;
   const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
   const autoBestSide = options?.autoBestSideConnection ?? false;
+  const connType = options?.connectorType ?? "orthogonal";
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const obstacleNodes = nodes.filter((n) => n.type !== "group");
 
@@ -340,6 +453,9 @@ export function routeAllCore(
   const result: Record<string, AvoidRoute> = {};
   const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]));
 
+  // Always create the router with OrthogonalRouting so nudging (edge-to-edge
+  // spacing) works correctly.  Per-connector routing type is set below via
+  // connRef.setRoutingType() to get polyline/bezier path shapes.
   const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
     setRoutingParameter: (p: number, v: number) => void;
     setRoutingOption: (o: number, v: boolean) => void;
@@ -445,7 +561,9 @@ export function routeAllCore(
   }
 
   for (const [edgeId, points] of edgePoints) {
-    const path = polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
+    const path = connType === "bezier"
+      ? polylineToBezierPath(points.length, (i) => points[i], { gridSize: gridSize || undefined })
+      : polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius: connType === "polyline" ? 0 : cornerRadius });
     const mid = Math.floor(points.length / 2);
     const midP = points[mid];
     const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
