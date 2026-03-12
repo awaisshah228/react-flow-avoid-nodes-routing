@@ -235,7 +235,139 @@ export class PersistentRouter {
     this.nodeById.clear();
   }
 
+  /**
+   * Incrementally add a node (shape + pins) to the live router and re-route.
+   */
+  addNode(node: FlowNode): Record<string, AvoidRoute> {
+    if (!this.router) return {};
+    if (node.type === "group") return this.readRoutes();
+    if (this.shapeRefMap.has(node.id)) return this.readRoutes(); // already exists
+
+    const Avoid = this.Avoid;
+    const router = this.router;
+    const pinProportions = getPinProportions(Avoid);
+
+    this.nodeById.set(node.id, node);
+    const b = getNodeBoundsAbsolute(node, this.nodeById);
+    this.lastBounds.set(node.id, { ...b });
+
+    const topLeft = new Avoid.Point(b.x, b.y);
+    const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
+    const rect = new Avoid.Rectangle(topLeft, bottomRight);
+    const shapeRef = new Avoid.ShapeRef(router, rect);
+    this.shapeRefMap.set(node.id, shapeRef);
+
+    for (const pinId of ALL_PIN_IDS) {
+      const p = pinProportions[pinId];
+      const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
+      pin.setExclusive(false);
+    }
+
+    try {
+      router.processTransaction();
+    } catch {
+      return this.initialize([...this.nodeById.values()], this.currentEdges, this.currentOptions);
+    }
+
+    return this.readRoutes();
+  }
+
+  /**
+   * Incrementally remove a node (and its connected edges) from the live router.
+   */
+  removeNode(nodeId: string): Record<string, AvoidRoute> {
+    if (!this.router) return {};
+
+    const router = this.router;
+
+    // Remove connectors that reference this node
+    const edgesToRemove = this.currentEdges.filter(
+      (e) => e.source === nodeId || e.target === nodeId
+    );
+    for (const edge of edgesToRemove) {
+      const idx = this.connRefList.findIndex((c) => c.edgeId === edge.id);
+      if (idx >= 0) {
+        try { router.deleteConnector(this.connRefList[idx].connRef); } catch { /* ignore */ }
+        this.connRefList.splice(idx, 1);
+      }
+    }
+    this.currentEdges = this.currentEdges.filter(
+      (e) => e.source !== nodeId && e.target !== nodeId
+    );
+
+    // Remove shape
+    const shapeRef = this.shapeRefMap.get(nodeId);
+    if (shapeRef) {
+      try { router.deleteShape(shapeRef); } catch { /* ignore */ }
+      this.shapeRefMap.delete(nodeId);
+    }
+
+    this.lastBounds.delete(nodeId);
+    this.nodeById.delete(nodeId);
+
+    try {
+      router.processTransaction();
+    } catch {
+      return this.initialize([...this.nodeById.values()], this.currentEdges, this.currentOptions);
+    }
+
+    return this.readRoutes();
+  }
+
+  /**
+   * Incrementally add an edge (connector) to the live router.
+   */
+  addEdge(edge: FlowEdge): Record<string, AvoidRoute> {
+    if (!this.router) return {};
+    if (this.connRefList.some((c) => c.edgeId === edge.id)) return this.readRoutes(); // already exists
+
+    const router = this.router;
+    const splitNearHandle = this.currentOptions.shouldSplitEdgesNearHandle ?? false;
+    const autoBestSide = this.currentOptions.autoBestSideConnection ?? false;
+
+    this.currentEdges.push(edge);
+    const connRef = this.createConnector(edge, splitNearHandle, autoBestSide);
+    if (connRef) {
+      this.connRefList.push({ edgeId: edge.id, connRef });
+    }
+
+    try {
+      router.processTransaction();
+    } catch {
+      return this.initialize([...this.nodeById.values()], this.currentEdges, this.currentOptions);
+    }
+
+    return this.readRoutes();
+  }
+
+  /**
+   * Incrementally remove an edge (connector) from the live router.
+   */
+  removeEdge(edgeId: string): Record<string, AvoidRoute> {
+    if (!this.router) return {};
+
+    const router = this.router;
+    const idx = this.connRefList.findIndex((c) => c.edgeId === edgeId);
+    if (idx >= 0) {
+      try { router.deleteConnector(this.connRefList[idx].connRef); } catch { /* ignore */ }
+      this.connRefList.splice(idx, 1);
+    }
+    this.currentEdges = this.currentEdges.filter((e) => e.id !== edgeId);
+
+    try {
+      router.processTransaction();
+    } catch {
+      return this.initialize([...this.nodeById.values()], this.currentEdges, this.currentOptions);
+    }
+
+    return this.readRoutes();
+  }
+
   // ---- Private helpers ----
+
+  private readRoutes(): Record<string, AvoidRoute> {
+    return readRoutesFromConnRefs(this.connRefList, this.currentEdges, this.currentOptions);
+  }
 
   private createConnector(
     edge: FlowEdge,

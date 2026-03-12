@@ -163,9 +163,28 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
 
     case "remove": {
       const id = msg.id;
+      const wasNode = currentNodes.some((n) => n.id === id);
+      const wasEdge = currentEdges.some((ed) => ed.id === id);
       currentNodes = currentNodes.filter((n) => n.id !== id);
       currentEdges = currentEdges.filter((ed) => ed.id !== id);
-      debouncedReset();
+
+      if (persistentRouter?.isInitialized()) {
+        cancelDebounce();
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          let routes: Record<string, AvoidRoute> = {};
+          if (wasNode) {
+            routes = persistentRouter!.removeNode(id);
+          } else if (wasEdge) {
+            routes = persistentRouter!.removeEdge(id);
+          }
+          setTimeout(() => {
+            if (!isPending()) postMessage({ command: "routed", routes } as const);
+          }, 0);
+        }, getDebounceMs());
+      } else {
+        debouncedReset();
+      }
       break;
     }
 
@@ -176,7 +195,24 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       } else {
         if (!currentEdges.some((ed) => ed.id === cell.id)) currentEdges.push(cell);
       }
-      debouncedReset();
+
+      if (persistentRouter?.isInitialized()) {
+        cancelDebounce();
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          let routes: Record<string, AvoidRoute>;
+          if (isNode(cell)) {
+            routes = persistentRouter!.addNode(cell);
+          } else {
+            routes = persistentRouter!.addEdge(cell);
+          }
+          setTimeout(() => {
+            if (!isPending()) postMessage({ command: "routed", routes } as const);
+          }, 0);
+        }, getDebounceMs());
+      } else {
+        debouncedReset();
+      }
       break;
     }
 
