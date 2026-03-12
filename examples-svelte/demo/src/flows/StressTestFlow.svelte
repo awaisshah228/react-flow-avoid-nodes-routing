@@ -28,6 +28,7 @@
     shouldSplitEdgesNearHandle: true,
     autoBestSideConnection: true,
     debounceMs: 0,
+    connectorType: "orthogonal" as "orthogonal" | "bezier" | "polyline",
   };
 
   let panelOpen = true;
@@ -43,6 +44,7 @@
     shouldSplitEdgesNearHandle: settings.shouldSplitEdgesNearHandle,
     autoBestSideConnection: settings.autoBestSideConnection,
     debounceMs: settings.debounceMs,
+    connectorType: settings.connectorType,
   };
 
   $: router.reset($nodes, $edges, routerOptions);
@@ -80,6 +82,14 @@
     <span class="close-icon">{panelOpen ? "\u2715" : ""}</span>
   </div>
   {#if panelOpen}
+    <div class="setting-row">
+      <label>Connector Type</label>
+      <select bind:value={settings.connectorType}>
+        <option value="orthogonal">Orthogonal</option>
+        <option value="bezier">Bezier</option>
+        <option value="polyline">Polyline</option>
+      </select>
+    </div>
     <div class="setting-row">
       <label>Edge Rounding</label>
       <div class="slider-wrap">

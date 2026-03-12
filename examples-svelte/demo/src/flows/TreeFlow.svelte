@@ -71,6 +71,7 @@
     shouldSplitEdgesNearHandle: true,
     autoBestSideConnection: true,
     resolveCollisions: true,
+    connectorType: "orthogonal" as "orthogonal" | "bezier" | "polyline",
     layoutDirection: "TB" as LayoutDirection,
     layoutAlgorithm: "dagre" as LayoutAlgorithmName,
     layoutSpacing: 50,
@@ -87,6 +88,7 @@
     diagramGridSize: settings.diagramGridSize,
     shouldSplitEdgesNearHandle: settings.shouldSplitEdgesNearHandle,
     autoBestSideConnection: settings.autoBestSideConnection,
+    connectorType: settings.connectorType,
   };
 
   $: router.reset($nodes, routerEdges, routerOptions);

@@ -30,6 +30,7 @@
     shouldSplitEdgesNearHandle: true,
     autoBestSideConnection: true,
     resolveCollisions: true,
+    connectorType: "orthogonal" as "orthogonal" | "bezier" | "polyline",
   };
 
   const router = createAvoidNodesRouter({
@@ -43,6 +44,7 @@
     diagramGridSize: settings.diagramGridSize,
     shouldSplitEdgesNearHandle: settings.shouldSplitEdgesNearHandle,
     autoBestSideConnection: settings.autoBestSideConnection,
+    connectorType: settings.connectorType,
   };
 
   $: router.reset($nodes, $edges, routerOptions);
@@ -59,7 +61,7 @@
     router.reset($nodes, $edges, routerOptions);
   }
 
-  function onSettingChange(e: CustomEvent<{ key: string; value: number | boolean }>) {
+  function onSettingChange(e: CustomEvent<{ key: string; value: number | boolean | string }>) {
     settings = { ...settings, [e.detail.key]: e.detail.value };
   }
 

@@ -41,7 +41,8 @@ function getNodeSizeSimple(node: Node): { width: number; height: number } {
 function computeGroupSize(
   nodeId: string,
   childrenByParent: Map<string, Node[]>,
-  nodeById: Map<string, Node>
+  nodeById: Map<string, Node>,
+  resolvedPositions: Map<string, { x: number; y: number }>
 ): { width: number; height: number } {
   const children = childrenByParent.get(nodeId);
   if (!children || children.length === 0) {
@@ -54,10 +55,11 @@ function computeGroupSize(
 
   for (const child of children) {
     const childSize = child.type === "group"
-      ? computeGroupSize(child.id, childrenByParent, nodeById)
+      ? computeGroupSize(child.id, childrenByParent, nodeById, resolvedPositions)
       : getNodeSizeSimple(child);
-    const right = child.position.x + childSize.width;
-    const bottom = child.position.y + childSize.height;
+    const pos = resolvedPositions.get(child.id) ?? child.position;
+    const right = pos.x + childSize.width;
+    const bottom = pos.y + childSize.height;
     if (right > maxRight) maxRight = right;
     if (bottom > maxBottom) maxBottom = bottom;
   }
@@ -73,7 +75,8 @@ function computeGroupSize(
 function getNodeSize(
   node: Node,
   childrenByParent: Map<string, Node[]>,
-  nodeById: Map<string, Node>
+  nodeById: Map<string, Node>,
+  resolvedPositions: Map<string, { x: number; y: number }>
 ): { width: number; height: number } {
   // Prefer measured dimensions (set by React Flow after render)
   if (node.measured?.width && node.measured?.height) {
@@ -81,7 +84,7 @@ function getNodeSize(
   }
 
   if (node.type === "group") {
-    return computeGroupSize(node.id, childrenByParent, nodeById);
+    return computeGroupSize(node.id, childrenByParent, nodeById, resolvedPositions);
   }
 
   return getNodeSizeSimple(node);
@@ -91,13 +94,15 @@ function buildBoxes(
   nodes: Node[],
   margin: number,
   childrenByParent: Map<string, Node[]>,
-  nodeById: Map<string, Node>
+  nodeById: Map<string, Node>,
+  resolvedPositions: Map<string, { x: number; y: number }>
 ): Box[] {
   return nodes.map((node) => {
-    const { width, height } = getNodeSize(node, childrenByParent, nodeById);
+    const { width, height } = getNodeSize(node, childrenByParent, nodeById, resolvedPositions);
+    const pos = resolvedPositions.get(node.id) ?? node.position;
     return {
-      x: node.position.x - margin,
-      y: node.position.y - margin,
+      x: pos.x - margin,
+      y: pos.y - margin,
       width: width + margin * 2,
       height: height + margin * 2,
       node,
@@ -217,17 +222,13 @@ export function resolveCollisions(
     const siblings = childrenByParent.get(parentKey)!;
     if (siblings.length < 2) continue;
 
-    const boxes = buildBoxes(siblings, margin, childrenByParent, nodeById);
+    const boxes = buildBoxes(siblings, margin, childrenByParent, nodeById, movedNodes);
     resolveBoxes(boxes, maxIter, threshold);
 
     for (const box of boxes) {
       if (box.moved) {
         const newPos = { x: box.x + margin, y: box.y + margin };
         movedNodes.set(box.node.id, newPos);
-        // Update the node's position in-place so that parent group size
-        // computations in subsequent (shallower) iterations see the
-        // resolved positions
-        box.node.position = newPos;
       }
     }
   }
@@ -261,7 +262,8 @@ export function hasOverlap(
 
   for (const [, siblings] of childrenByParent) {
     if (siblings.length < 2) continue;
-    const boxes = buildBoxes(siblings, margin, childrenByParent, nodeById);
+    const emptyMap = new Map<string, { x: number; y: number }>();
+    const boxes = buildBoxes(siblings, margin, childrenByParent, nodeById, emptyMap);
 
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {

@@ -8,6 +8,7 @@
   export let shouldSplitEdgesNearHandle = true;
   export let autoBestSideConnection = true;
   export let resolveCollisions = true;
+  export let connectorType: "orthogonal" | "bezier" | "polyline" = "orthogonal";
 
   export let showLayout = false;
   export let layoutAlgorithm = "elk";
@@ -98,6 +99,15 @@
 
       <div class="section-label">libavoid Routing</div>
 
+      <div class="row">
+        <label>Connector Type</label>
+        <select value={connectorType} on:change={(e) => onLayoutChange("connectorType", e.currentTarget.value)}>
+          <option value="orthogonal">Orthogonal</option>
+          <option value="bezier">Bezier</option>
+          <option value="polyline">Polyline</option>
+        </select>
+      </div>
+
       {#each layoutSliders as { key, label, min, max }}
         <div class="row">
           <label>{label}</label>
@@ -124,6 +134,15 @@
         </div>
       </div>
     {:else}
+      <div class="row">
+        <label>Connector Type</label>
+        <select value={connectorType} on:change={(e) => { dispatch("change", { key: "connectorType", value: e.currentTarget.value }); }}>
+          <option value="orthogonal">Orthogonal</option>
+          <option value="bezier">Bezier</option>
+          <option value="polyline">Polyline</option>
+        </select>
+      </div>
+
       {#each sliders as { key, label, min, max }}
         <div class="row">
           <label>{label}</label>

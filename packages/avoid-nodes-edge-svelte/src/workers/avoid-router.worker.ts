@@ -1,6 +1,9 @@
 /**
  * Web Worker: loads AvoidRouter (WASM) and handles routing commands.
  * WASM loads exclusively in this worker — never on the main thread.
+ *
+ * Uses PersistentRouter for incremental updates (moveShape_delta) during drag,
+ * falling back to full reset when graph structure or settings change.
  */
 
 import "./worker-polyfill";
@@ -14,6 +17,7 @@ import {
   loadWasmWithRetry,
   routeAllCore,
 } from "../routing-core";
+import { PersistentRouter } from "../persistent-router";
 import { resolveCollisions, type ResolveCollisionsOptions } from "../resolve-collisions";
 
 // ---- Worker command types ----
@@ -47,18 +51,42 @@ const routerLoaded = loadWasmWithRetry().then((lib) => {
 let currentNodes: FlowNode[] = [];
 let currentEdges: FlowEdge[] = [];
 let currentOptions: AvoidRouterOptions = {};
+let persistentRouter: PersistentRouter | null = null;
+
 function isNode(cell: FlowNode | FlowEdge): cell is FlowNode {
   return "position" in cell && ("width" in cell || "measured" in cell || !("source" in cell));
 }
 
-function doRoute(): Record<string, AvoidRoute> {
+/** Full reset using PersistentRouter. */
+function doResetPersistent(): Record<string, AvoidRoute> {
   if (!avoidLib) return {};
   const avoidEdges = currentEdges.filter((e) => e.type === "avoidNodes");
-  if (avoidEdges.length === 0) return {};
-  try {
-    return routeAllCore(avoidLib, currentNodes, avoidEdges, currentOptions);
-  } catch {
+  if (avoidEdges.length === 0) {
+    persistentRouter?.destroy();
+    persistentRouter = null;
     return {};
+  }
+  if (!persistentRouter) {
+    persistentRouter = new PersistentRouter(avoidLib);
+  }
+  try {
+    return persistentRouter.initialize(currentNodes, avoidEdges, currentOptions);
+  } catch {
+    persistentRouter?.destroy();
+    persistentRouter = null;
+    return {};
+  }
+}
+
+/** Incremental update via PersistentRouter.moveNodes(). */
+function doIncrementalUpdate(changedNodes: FlowNode[]): Record<string, AvoidRoute> {
+  if (!persistentRouter?.isInitialized()) {
+    return doResetPersistent();
+  }
+  try {
+    return persistentRouter.moveNodes(changedNodes, currentNodes);
+  } catch {
+    return doResetPersistent();
   }
 }
 
@@ -76,11 +104,24 @@ function cancelDebounce() {
   if (debounceTimer != null) { clearTimeout(debounceTimer); debounceTimer = null; }
 }
 
-function debouncedRoute() {
+function debouncedReset() {
   cancelDebounce();
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
-    const routes = doRoute();
+    const routes = doResetPersistent();
+    setTimeout(() => {
+      if (!isPending()) {
+        postMessage({ command: "routed", routes } as const);
+      }
+    }, 0);
+  }, getDebounceMs());
+}
+
+function debouncedIncremental(changedNodes: FlowNode[]) {
+  cancelDebounce();
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    const routes = doIncrementalUpdate(changedNodes);
     setTimeout(() => {
       if (!isPending()) {
         postMessage({ command: "routed", routes } as const);
@@ -102,7 +143,7 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       currentNodes = msg.nodes ?? [];
       currentEdges = msg.edges ?? [];
       if (msg.options) currentOptions = msg.options;
-      debouncedRoute();
+      debouncedReset();
       break;
 
     case "change": {
@@ -116,7 +157,7 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
         if (i >= 0) currentEdges[i] = { ...currentEdges[i], ...cell };
         else currentEdges.push(cell);
       }
-      debouncedRoute();
+      debouncedReset();
       break;
     }
 
@@ -124,7 +165,7 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       const id = msg.id;
       currentNodes = currentNodes.filter((n) => n.id !== id);
       currentEdges = currentEdges.filter((ed) => ed.id !== id);
-      debouncedRoute();
+      debouncedReset();
       break;
     }
 
@@ -135,7 +176,7 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       } else {
         if (!currentEdges.some((ed) => ed.id === cell.id)) currentEdges.push(cell);
       }
-      debouncedRoute();
+      debouncedReset();
       break;
     }
 
@@ -146,7 +187,8 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
         if (i >= 0) currentNodes[i] = { ...currentNodes[i], ...updated };
         else currentNodes.push(updated);
       }
-      debouncedRoute();
+      // Full reset for now — incremental moveShape_delta needs more testing
+      debouncedReset();
       break;
     }
 
@@ -174,19 +216,19 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
     case "resolveCollisions": {
       const collisionNodes = (msg.nodes ?? currentNodes) as Parameters<typeof resolveCollisions>[0];
       const resolved = resolveCollisions(collisionNodes, msg.options);
-      // Update internal model with resolved positions
       for (const node of resolved) {
         const i = currentNodes.findIndex((n) => n.id === node.id);
         if (i >= 0) currentNodes[i] = { ...currentNodes[i], position: node.position };
       }
       postMessage({ command: "collisionsResolved", nodes: resolved } as const);
-      // Re-route edges with the updated node positions
-      debouncedRoute();
+      debouncedReset();
       break;
     }
 
     case "close":
       cancelDebounce();
+      persistentRouter?.destroy();
+      persistentRouter = null;
       self.close();
       break;
 

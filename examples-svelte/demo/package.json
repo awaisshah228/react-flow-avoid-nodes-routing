@@ -15,7 +15,7 @@
     "avoid-nodes-edge-svelte": "*",
     "d3-hierarchy": "^3.1.2",
     "elkjs": "^0.9.3",
-    "libavoid-js": "0.4.5",
+    "libavoid-js": "0.5.0-beta.5",
     "svelte": "^4.0.0"
   },
   "devDependencies": {

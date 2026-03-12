@@ -18,7 +18,7 @@ export type AvoidRouterOptions = {
   shouldSplitEdgesNearHandle?: boolean;
   autoBestSideConnection?: boolean;
   debounceMs?: number;
-  /** Edge path style: "orthogonal" (default) or "bezier" (smooth curved). */
+  /** Edge path style: "orthogonal" (default), "bezier" (smooth curved), or "polyline" (sharp corners). */
   connectorType?: ConnectorType;
 };
 
@@ -47,11 +47,31 @@ export type FlowEdge = {
   [key: string]: unknown;
 };
 
+// ---- libavoid-js 0.5.0 typed interfaces ----
+
+export type AvoidRouter = {
+  setRoutingParameter: (p: number, v: number) => void;
+  setRoutingOption: (o: number, v: boolean) => void;
+  processTransaction: () => void;
+  deleteConnector: (c: unknown) => void;
+  deleteShape: (s: unknown) => void;
+  moveShape_delta: (shape: unknown, xDiff: number, yDiff: number) => void;
+  moveShape_poly: (shape: unknown, newPolygon: unknown) => void;
+  delete: () => void;
+};
+
+export type AvoidConnRef = {
+  setRoutingType: (t: number) => void;
+  setSourceEndpoint: (connEnd: unknown) => void;
+  setDestEndpoint: (connEnd: unknown) => void;
+  displayRoute: () => { size: () => number; at: (i: number) => { x: number; y: number } };
+};
+
 export type AvoidLibInstance = {
-  Router: new (flags: number) => unknown;
+  Router: new (flags: number) => AvoidRouter;
   Point: new (x: number, y: number) => { x: number; y: number };
   Rectangle: new (a: unknown, b: unknown) => unknown;
-  ShapeRef: new (router: unknown, poly: unknown) => unknown;
+  ShapeRef: new (router: AvoidRouter, poly: unknown) => unknown;
   ShapeConnectionPin: new (
     shapeRef: unknown,
     classId: number,
@@ -60,27 +80,131 @@ export type AvoidLibInstance = {
     proportional: boolean,
     insideOffset: number,
     directions: number
-  ) => { setExclusive: (exclusive: boolean) => void };
+  ) => { setExclusive: (exclusive: boolean) => void; delete: () => void };
   ConnEnd: new (shapeRefOrPoint: unknown, pinClassId?: number) => unknown;
-  ConnRef: new (router: unknown, src?: unknown, dst?: unknown) => {
-    setRoutingType: (t: number) => void;
-    displayRoute: () => { size: () => number; get_ps: (i: number) => { x: number; y: number } };
-  };
-  OrthogonalRouting: number;
-  PolyLineRouting: number;
-  ConnType_Orthogonal: number;
-  ConnType_PolyLine: number;
-  ConnDirUp: number;
-  ConnDirDown: number;
-  ConnDirLeft: number;
-  ConnDirRight: number;
-  ConnDirAll: number;
-  shapeBufferDistance: number;
-  idealNudgingDistance: number;
-  nudgeOrthogonalSegmentsConnectedToShapes: number;
-  nudgeSharedPathsWithCommonEndPoint: number;
-  performUnifyingNudgingPreprocessingStep: number;
+  ConnRef: new (router: AvoidRouter, src?: unknown, dst?: unknown) => AvoidConnRef;
+  // 0.5.0+ enum-based access
+  RouterFlag?: { OrthogonalRouting: number; PolyLineRouting: number };
+  ConnType?: { ConnType_Orthogonal: number; ConnType_PolyLine: number; ConnType_None: number };
+  RoutingParameter?: { shapeBufferDistance: number; idealNudgingDistance: number };
+  RoutingOption?: { nudgeOrthogonalSegmentsConnectedToShapes: number; nudgeSharedPathsWithCommonEndPoint: number; performUnifyingNudgingPreprocessingStep: number };
+  // Legacy direct access (0.4.x)
+  OrthogonalRouting?: number;
+  PolyLineRouting?: number;
+  ConnType_Orthogonal?: number;
+  ConnType_PolyLine?: number;
+  ConnDirUp?: number;
+  ConnDirDown?: number;
+  ConnDirLeft?: number;
+  ConnDirRight?: number;
+  ConnDirAll?: number;
+  shapeBufferDistance?: number;
+  idealNudgingDistance?: number;
+  nudgeOrthogonalSegmentsConnectedToShapes?: number;
+  nudgeSharedPathsWithCommonEndPoint?: number;
+  performUnifyingNudgingPreprocessingStep?: number;
+  // Catch-all for any other properties
+  [key: string]: unknown;
 };
+
+/**
+ * Unwrap a value that may be an emscripten enum wrapper ({ value: N }) or a plain number.
+ */
+function toNum(v: unknown, fallback: number): number {
+  if (typeof v === "number") return v;
+  if (v == null) return fallback;
+  if (typeof v === "object" && "value" in v && typeof (v as { value: unknown }).value === "number") {
+    return (v as { value: number }).value;
+  }
+  return fallback;
+}
+
+/**
+ * Resolve a constant: prefer enum-based access (0.5.0+), then legacy direct access (0.4.x), then fallback.
+ * Returns the RAW value (may be an enum object) — pass directly to libavoid methods that expect enum types.
+ */
+function raw(enumObj: Record<string, unknown> | undefined, key: string, legacyValue: unknown, fallback: number): unknown {
+  return enumObj?.[key] ?? legacyValue ?? fallback;
+}
+
+/**
+ * Helper to resolve libavoid constants across versions.
+ *
+ * Returns both raw values (for passing to methods that expect enum types like
+ * setRoutingParameter/setRoutingOption/setRoutingType) and numeric values
+ * (for Router constructor flags and ShapeConnectionPin directions).
+ *
+ * Fallback values from libavoid C++ source:
+ *   RouterFlag:      PolyLineRouting=1, OrthogonalRouting=2
+ *   ConnType:        None=0, PolyLine=1, Orthogonal=2
+ *   RoutingParam:    shapeBufferDistance=6, idealNudgingDistance=7
+ *   RoutingOption:   nudgeOrthSegConnToShapes=0, performUnifyingNudge=4, nudgeSharedPaths=6
+ *   ConnDirFlag:     Up=1, Down=2, Left=4, Right=8, All=15
+ */
+export function c(Avoid: AvoidLibInstance) {
+  const rf = Avoid.RouterFlag as Record<string, unknown> | undefined;
+  const ct = Avoid.ConnType as Record<string, unknown> | undefined;
+  const rp = Avoid.RoutingParameter as Record<string, unknown> | undefined;
+  const ro = Avoid.RoutingOption as Record<string, unknown> | undefined;
+
+  // Raw enum values — pass to setRoutingParameter/setRoutingOption/setRoutingType
+  const rawShapeBuffer = raw(rp, "shapeBufferDistance", Avoid.shapeBufferDistance, 6);
+  const rawIdealNudging = raw(rp, "idealNudgingDistance", Avoid.idealNudgingDistance, 7);
+  const rawNudgeOrth = raw(ro, "nudgeOrthogonalSegmentsConnectedToShapes", Avoid.nudgeOrthogonalSegmentsConnectedToShapes, 0);
+  const rawNudgeShared = raw(ro, "nudgeSharedPathsWithCommonEndPoint", Avoid.nudgeSharedPathsWithCommonEndPoint, 6);
+  const rawPerformUnify = raw(ro, "performUnifyingNudgingPreprocessingStep", Avoid.performUnifyingNudgingPreprocessingStep, 4);
+  const rawConnTypeOrth = raw(ct, "ConnType_Orthogonal", Avoid.ConnType_Orthogonal, 2);
+  const rawConnTypePoly = raw(ct, "ConnType_PolyLine", Avoid.ConnType_PolyLine, 1);
+
+  return {
+    // Numeric values — for Router constructor (takes unsigned int) and pin directions
+    OrthogonalRouting: toNum(rf?.OrthogonalRouting ?? Avoid.OrthogonalRouting, 2),
+    PolyLineRouting: toNum(rf?.PolyLineRouting ?? Avoid.PolyLineRouting, 1),
+    ConnDirUp: toNum(Avoid.ConnDirUp, 1),
+    ConnDirDown: toNum(Avoid.ConnDirDown, 2),
+    ConnDirLeft: toNum(Avoid.ConnDirLeft, 4),
+    ConnDirRight: toNum(Avoid.ConnDirRight, 8),
+    ConnDirAll: toNum(Avoid.ConnDirAll, 15),
+
+    // Raw enum values — pass directly to setRoutingParameter/setRoutingOption/setRoutingType
+    // These may be enum objects in 0.5.0+ or plain numbers in 0.4.x
+    shapeBufferDistance: rawShapeBuffer as number,
+    idealNudgingDistance: rawIdealNudging as number,
+    nudgeOrthogonalSegmentsConnectedToShapes: rawNudgeOrth as number,
+    nudgeSharedPathsWithCommonEndPoint: rawNudgeShared as number,
+    performUnifyingNudgingPreprocessingStep: rawPerformUnify as number,
+    ConnType_Orthogonal: rawConnTypeOrth as number,
+    ConnType_PolyLine: rawConnTypePoly as number,
+  };
+}
+
+// ---- Shared pin constants ----
+
+export const PIN_CENTER = 1;
+export const PIN_TOP = 2;
+export const PIN_BOTTOM = 3;
+export const PIN_LEFT = 4;
+export const PIN_RIGHT = 5;
+export const ALL_PIN_IDS = [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT] as const;
+
+export const pinIdForPosition: Record<HandlePosition, number> = {
+  top: PIN_TOP,
+  bottom: PIN_BOTTOM,
+  left: PIN_LEFT,
+  right: PIN_RIGHT,
+};
+
+/** Returns pin proportions map — depends on Avoid runtime constants so must be called with instance. */
+export function getPinProportions(Avoid: AvoidLibInstance): Record<number, { x: number; y: number; dir: number }> {
+  const k = c(Avoid);
+  return {
+    [PIN_CENTER]: { x: 0.5, y: 0.5, dir: k.ConnDirAll },
+    [PIN_TOP]: { x: 0.5, y: 0, dir: k.ConnDirUp },
+    [PIN_BOTTOM]: { x: 0.5, y: 1, dir: k.ConnDirDown },
+    [PIN_LEFT]: { x: 0, y: 0.5, dir: k.ConnDirLeft },
+    [PIN_RIGHT]: { x: 1, y: 0.5, dir: k.ConnDirRight },
+  };
+}
 
 // ---- WASM Loading ----
 
@@ -421,7 +545,69 @@ function rescaleNearHandle(
   }
 }
 
-// ---- Main routing function ----
+// ---- Read routes from connRefs ----
+
+export function readRoutesFromConnRefs(
+  connRefs: { edgeId: string; connRef: AvoidConnRef }[],
+  edges: FlowEdge[],
+  options: AvoidRouterOptions
+): Record<string, AvoidRoute> {
+  const handleNudging = options.handleNudgingDistance ?? options.idealNudgingDistance ?? 10;
+  const idealNudging = options.idealNudgingDistance ?? 10;
+  const cornerRadius = options.edgeRounding ?? 0;
+  const gridSize = options.diagramGridSize ?? 0;
+  const connType = options.connectorType ?? "orthogonal";
+
+  const edgePoints = new Map<string, { x: number; y: number }[]>();
+  for (const { edgeId, connRef } of connRefs) {
+    try {
+      const route = connRef.displayRoute();
+      const size = route.size();
+      if (size < 2) continue;
+      const points: { x: number; y: number }[] = [];
+      for (let i = 0; i < size; i++) {
+        const p = route.at(i);
+        points.push({ x: p.x, y: p.y });
+      }
+      edgePoints.set(edgeId, points);
+    } catch {
+      // skip
+    }
+  }
+
+  if (handleNudging !== idealNudging && edgePoints.size > 0) {
+    adjustHandleSpacing(edges, edgePoints, handleNudging, idealNudging);
+  }
+
+  const result: Record<string, AvoidRoute> = {};
+  for (const [edgeId, points] of edgePoints) {
+    const path = connType === "bezier"
+      ? polylineToBezierPath(points.length, (i) => points[i], { gridSize: gridSize || undefined })
+      : polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius: connType === "polyline" ? 0 : cornerRadius });
+    const mid = Math.floor(points.length / 2);
+    const midP = points[mid];
+    const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
+    result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
+  }
+  return result;
+}
+
+// ---- Router setup helper ----
+
+export function createAvoidRouter(Avoid: AvoidLibInstance, options?: AvoidRouterOptions): AvoidRouter {
+  const k = c(Avoid);
+  const shapeBuffer = options?.shapeBufferDistance ?? 8;
+  const idealNudging = options?.idealNudgingDistance ?? 10;
+  const router = new Avoid.Router(k.OrthogonalRouting);
+  router.setRoutingParameter(k.shapeBufferDistance, shapeBuffer);
+  router.setRoutingParameter(k.idealNudgingDistance, idealNudging);
+  router.setRoutingOption(k.nudgeOrthogonalSegmentsConnectedToShapes, true);
+  router.setRoutingOption(k.nudgeSharedPathsWithCommonEndPoint, true);
+  router.setRoutingOption(k.performUnifyingNudgingPreprocessingStep, true);
+  return router;
+}
+
+// ---- Main routing function (stateless, one-shot) ----
 
 export function routeAllCore(
   Avoid: AvoidLibInstance,
@@ -429,64 +615,35 @@ export function routeAllCore(
   edges: FlowEdge[],
   options?: AvoidRouterOptions
 ): Record<string, AvoidRoute> {
-  const shapeBuffer = options?.shapeBufferDistance ?? 8;
-  const idealNudging = options?.idealNudgingDistance ?? 10;
-  const handleNudging = options?.handleNudgingDistance ?? idealNudging;
-  const cornerRadius = options?.edgeRounding ?? 0;
-  const gridSize = options?.diagramGridSize ?? 0;
   const splitNearHandle = options?.shouldSplitEdgesNearHandle ?? false;
   const autoBestSide = options?.autoBestSideConnection ?? false;
-  const connType = options?.connectorType ?? "orthogonal";
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const obstacleNodes = nodes.filter((n) => n.type !== "group");
-
-  const PIN_CENTER = 1, PIN_TOP = 2, PIN_BOTTOM = 3, PIN_LEFT = 4, PIN_RIGHT = 5;
-  const pinIdForPosition: Record<HandlePosition, number> = { top: PIN_TOP, bottom: PIN_BOTTOM, left: PIN_LEFT, right: PIN_RIGHT };
-  const pinProportions: Record<number, { x: number; y: number; dir: number }> = {
-    [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
-    [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
-    [PIN_BOTTOM]: { x: 0.5, y: 1, dir: Avoid.ConnDirDown },
-    [PIN_LEFT]: { x: 0, y: 0.5, dir: Avoid.ConnDirLeft },
-    [PIN_RIGHT]: { x: 1, y: 0.5, dir: Avoid.ConnDirRight },
-  };
+  const pinProportions = getPinProportions(Avoid);
 
   const result: Record<string, AvoidRoute> = {};
   const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]));
 
-  // Always create the router with OrthogonalRouting so nudging (edge-to-edge
-  // spacing) works correctly.  Per-connector routing type is set below via
-  // connRef.setRoutingType() to get polyline/bezier path shapes.
-  const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
-    setRoutingParameter: (p: number, v: number) => void;
-    setRoutingOption: (o: number, v: boolean) => void;
-    processTransaction: () => void;
-    deleteConnector: (c: unknown) => void;
-    deleteShape: (s: unknown) => void;
-  };
-  router.setRoutingParameter(Avoid.shapeBufferDistance, shapeBuffer);
-  router.setRoutingParameter(Avoid.idealNudgingDistance, idealNudging);
-  router.setRoutingOption(Avoid.nudgeOrthogonalSegmentsConnectedToShapes, true);
-  router.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
-  router.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
+  const router = createAvoidRouter(Avoid, options);
 
   const shapeRefMap = new Map<string, unknown>();
-  const shapeRefs: { ref: unknown }[] = [];
+  const shapeRefs: unknown[] = [];
   for (const node of obstacleNodes) {
     const b = nodeBounds.get(node.id)!;
     const topLeft = new Avoid.Point(b.x, b.y);
     const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
     const rect = new Avoid.Rectangle(topLeft, bottomRight);
     const shapeRef = new Avoid.ShapeRef(router, rect);
-    shapeRefs.push({ ref: shapeRef });
+    shapeRefs.push(shapeRef);
     shapeRefMap.set(node.id, shapeRef);
-    for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
+    for (const pinId of ALL_PIN_IDS) {
       const p = pinProportions[pinId];
       const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
       pin.setExclusive(false);
     }
   }
 
-  const connRefs: { edgeId: string; connRef: unknown }[] = [];
+  const connRefs: { edgeId: string; connRef: AvoidConnRef }[] = [];
   for (const edge of edges) {
     const src = nodeById.get(edge.source);
     const tgt = nodeById.get(edge.target);
@@ -528,7 +685,7 @@ export function routeAllCore(
       tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
     }
     const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
-    connRef.setRoutingType(Avoid.ConnType_Orthogonal);
+    connRef.setRoutingType(c(Avoid).ConnType_Orthogonal);
     connRefs.push({ edgeId: edge.id, connRef });
   }
 
@@ -539,36 +696,8 @@ export function routeAllCore(
     return result;
   }
 
-  const edgePoints = new Map<string, { x: number; y: number }[]>();
-  for (const { edgeId, connRef } of connRefs) {
-    try {
-      const route = (connRef as { displayRoute(): { size(): number; get_ps(i: number): { x: number; y: number } } }).displayRoute();
-      const size = route.size();
-      if (size < 2) continue;
-      const points: { x: number; y: number }[] = [];
-      for (let i = 0; i < size; i++) {
-        const p = route.get_ps(i);
-        points.push({ x: p.x, y: p.y });
-      }
-      edgePoints.set(edgeId, points);
-    } catch {
-      // skip
-    }
-  }
-
-  if (handleNudging !== idealNudging && edgePoints.size > 0) {
-    adjustHandleSpacing(edges, edgePoints, handleNudging, idealNudging);
-  }
-
-  for (const [edgeId, points] of edgePoints) {
-    const path = connType === "bezier"
-      ? polylineToBezierPath(points.length, (i) => points[i], { gridSize: gridSize || undefined })
-      : polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius: connType === "polyline" ? 0 : cornerRadius });
-    const mid = Math.floor(points.length / 2);
-    const midP = points[mid];
-    const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
-    result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
-  }
+  const routes = readRoutesFromConnRefs(connRefs, edges, options ?? {});
+  Object.assign(result, routes);
 
   cleanup(router, connRefs, shapeRefs);
 
@@ -576,13 +705,14 @@ export function routeAllCore(
 }
 
 function cleanup(
-  router: { deleteConnector: (c: unknown) => void; deleteShape: (s: unknown) => void },
-  connRefs: { connRef: unknown }[],
-  shapeRefs: { ref: unknown }[]
+  router: AvoidRouter,
+  connRefs: { connRef: AvoidConnRef }[],
+  shapeRefs: unknown[]
 ): void {
   try {
     for (const { connRef } of connRefs) router.deleteConnector(connRef);
-    for (const { ref } of shapeRefs) router.deleteShape(ref);
+    for (const ref of shapeRefs) router.deleteShape(ref);
+    router.delete();
   } catch {
     // ignore
   }
