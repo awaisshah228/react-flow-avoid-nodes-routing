@@ -1,0 +1,26 @@
+{
+  "name": "@avoid-nodes/nextjs-server-example",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3005",
+    "build": "next build",
+    "start": "next start --port 3005",
+    "postinstall": "node scripts/copy-libavoid-wasm.cjs"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.10.1",
+    "avoid-nodes-router": "^0.1.0",
+    "elkjs": "^0.9.3",
+    "libavoid-js": "0.4.5",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

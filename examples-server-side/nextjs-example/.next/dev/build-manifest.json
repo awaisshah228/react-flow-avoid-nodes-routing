@@ -1,0 +1,25 @@
+{
+  "pages": {
+    "/_app": []
+  },
+  "devFiles": [],
+  "polyfillFiles": [
+    "static/chunks/f7b54_next_dist_build_polyfills_polyfill-nomodule.js"
+  ],
+  "lowPriorityFiles": [
+    "static/development/_ssgManifest.js",
+    "static/development/_buildManifest.js"
+  ],
+  "rootMainFiles": [
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_7df3a269._.js",
+    "static/chunks/f7b54_next_dist_compiled_react-dom_8796cfb8._.js",
+    "static/chunks/f7b54_next_dist_compiled_react-server-dom-turbopack_caa5fd77._.js",
+    "static/chunks/f7b54_next_dist_compiled_next-devtools_index_3b20177e.js",
+    "static/chunks/f7b54_next_dist_compiled_385f095a._.js",
+    "static/chunks/f7b54_next_dist_client_e4158244._.js",
+    "static/chunks/f7b54_next_dist_873fb2ab._.js",
+    "static/chunks/dae4a_@swc_helpers_cjs_93db2bc1._.js",
+    "static/chunks/avoid-nodes-pro-example_examples-server_nextjs-example_a0ff3932._.js",
+    "static/chunks/turbopack-avoid-nodes-pro-example_examples-server_nextjs-example_90d2eb65._.js"
+  ]
+}

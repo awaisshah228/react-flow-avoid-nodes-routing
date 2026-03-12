@@ -10,7 +10,8 @@
     "examples-next/nextjs-latest-basic",
     "examples-svelte/demo",
     "examples-svelte/basic",
-    "examples-server/api-example"
+    "examples-server-side/express-api-example",
+    "examples-server-side/nextjs-example"
   ],
   "scripts": {
     "build": "turbo run build",

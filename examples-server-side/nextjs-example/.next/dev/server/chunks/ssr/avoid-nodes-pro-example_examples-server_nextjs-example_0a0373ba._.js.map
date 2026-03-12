@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///Users/awaisshah228/Documents/coding/ai-diagram-generator/avoid-nodes-pro-example/examples-server/nextjs-example/src/app/layout.tsx"],"sourcesContent":["import type { Metadata } from \"next\";\n\nexport const metadata: Metadata = {\n  title: \"Avoid Nodes - Next.js Server Example\",\n  description: \"Server-side ELK layout + edge routing with avoid-nodes-router\",\n};\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body style={{ margin: 0, padding: 0 }}>{children}</body>\n    </html>\n  );\n}\n"],"names":[],"mappings":";;;;;;;;AAEO,MAAM,WAAqB;IAChC,OAAO;IACP,aAAa;AACf;AAEe,SAAS,WAAW,EAAE,QAAQ,EAAiC;IAC5E,qBACE,6TAAC;QAAK,MAAK;kBACT,cAAA,6TAAC;YAAK,OAAO;gBAAE,QAAQ;gBAAG,SAAS;YAAE;sBAAI;;;;;;;;;;;AAG/C"}},
+    {"offset": {"line": 40, "column": 0}, "map": {"version":3,"sources":["file:///Users/awaisshah228/Documents/coding/ai-diagram-generator/avoid-nodes-pro-example/examples-server/nextjs-example/node_modules/next/src/server/route-modules/app-page/vendored/rsc/react-jsx-dev-runtime.ts"],"sourcesContent":["module.exports = (\n  require('../../module.compiled') as typeof import('../../module.compiled')\n).vendored['react-rsc']!.ReactJsxDevRuntime\n"],"names":["module","exports","require","vendored","ReactJsxDevRuntime"],"mappings":"AAAAA,OAAOC,OAAO,GACZC,QAAQ,mLACRC,QAAQ,CAAC,YAAY,CAAEC,kBAAkB","ignoreList":[0]}}]
+}

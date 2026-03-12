@@ -1,0 +1,13 @@
+[00:00:00.852] Server  LOG     
+[00:00:00.852] Server  LOG       We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+[00:00:00.852] Server  LOG       The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+[00:00:00.852] Server  LOG       	- include was updated to add '.next/dev/types/**/*.ts'
+[00:00:00.852] Server  LOG     
+[00:00:00.852] Server  LOG       The following mandatory changes were made to your tsconfig.json:
+
+[00:00:00.852] Server  LOG       	- jsx was set to react-jsx (next.js uses the React automatic runtime)
+[00:00:00.852] Server  LOG     
+[00:00:00.921] Server  LOG     ✓ Ready in 748ms
+[00:00:08.068] Server  WARN    ⚠ Cross origin request detected from 192.168.0.181 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins

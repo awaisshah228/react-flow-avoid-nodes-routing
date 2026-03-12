@@ -1,0 +1,3 @@
+module.exports=[85526,a=>{"use strict";var b=a.i(7347);function c({children:a}){return(0,b.jsx)("html",{lang:"en",children:(0,b.jsx)("body",{style:{margin:0,padding:0},children:a})})}a.s(["default",()=>c,"metadata",0,{title:"Avoid Nodes - Next.js Server Example",description:"Server-side ELK layout + edge routing with avoid-nodes-router"}])}];
+
+//# sourceMappingURL=3a58b_examples-server-side_nextjs-example_src_app_layout_tsx_65df5ebe._.js.map
