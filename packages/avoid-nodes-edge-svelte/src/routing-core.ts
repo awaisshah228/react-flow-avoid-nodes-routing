@@ -458,13 +458,14 @@ export function routeAllCore(
 }
 
 function cleanup(
-  router: { deleteConnector: (c: unknown) => void; deleteShape: (s: unknown) => void },
+  router: { deleteConnector: (c: unknown) => void; deleteShape: (s: unknown) => void; delete?: () => void },
   connRefs: { connRef: unknown }[],
   shapeRefs: { ref: unknown }[]
 ): void {
   try {
     for (const { connRef } of connRefs) router.deleteConnector(connRef);
     for (const { ref } of shapeRefs) router.deleteShape(ref);
+    router.delete?.();
   } catch {
     // ignore
   }

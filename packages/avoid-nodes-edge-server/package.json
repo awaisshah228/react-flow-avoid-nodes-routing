@@ -1,0 +1,45 @@
+{
+  "name": "avoid-nodes-edge-server",
+  "version": "0.1.0",
+  "description": "Transport-agnostic server-side edge routing engine for avoid-nodes. Bring your own transport (WebSocket, SSE, HTTP, etc).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "libavoid-js": "0.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.2"
+  },
+  "keywords": [
+    "avoid-nodes",
+    "edge-routing",
+    "server",
+    "transport-agnostic",
+    "libavoid",
+    "wasm",
+    "react-flow"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Awais Shah (https://github.com/awaisshah228)"
+}
