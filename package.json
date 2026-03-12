@@ -10,9 +10,6 @@
     "examples-next/nextjs-latest-basic",
     "examples-svelte/demo",
     "examples-svelte/basic",
-    "examples-server/ws-example",
-    "examples-server/sse-example",
-    "examples-server/socketio-example",
     "examples-server/api-example"
   ],
   "scripts": {
