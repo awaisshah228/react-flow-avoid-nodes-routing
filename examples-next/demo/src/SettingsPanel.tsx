@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { LayoutDirection, LayoutAlgorithmName } from "./utils/auto-layout";
 
+type ConnectorType = "orthogonal" | "bezier" | "polyline";
+
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
 const getPanelStyle = (): React.CSSProperties => ({
@@ -34,12 +36,14 @@ export type Settings = {
   shouldSplitEdgesNearHandle: boolean;
   autoBestSideConnection: boolean;
   resolveCollisions: boolean;
+  connectorType: ConnectorType;
 };
 
 export type AutoLayoutSettings = Settings & {
   layoutDirection: LayoutDirection;
   layoutAlgorithm: LayoutAlgorithmName;
   layoutSpacing: number;
+  connectorType: ConnectorType;
 };
 
 function BooleanToggle({
@@ -81,7 +85,7 @@ export function SettingsPanel({
   onChange,
 }: {
   settings: Settings;
-  onChange: (key: string, value: number | boolean) => void;
+  onChange: (key: string, value: number | boolean | string) => void;
 }) {
   const [open, setOpen] = useState(() => !isMobile());
   const sliders = [
@@ -102,6 +106,18 @@ export function SettingsPanel({
       </div>
       {open && (
         <>
+          <div style={rowStyle}>
+            <label>Connector Type</label>
+            <select
+              value={settings.connectorType}
+              onChange={(e) => onChange("connectorType", e.target.value)}
+              style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #ccc" }}
+            >
+              <option value="orthogonal">Orthogonal</option>
+              <option value="bezier">Bezier</option>
+              <option value="polyline">Polyline</option>
+            </select>
+          </div>
           {sliders.map(({ key, label, min, max }) => (
             <div key={key} style={rowStyle}>
               <label>{label}</label>
@@ -229,6 +245,18 @@ export function AutoLayoutSettingsPanel({
       </div>
 
       <div style={{ fontWeight: 500, marginBottom: 8, fontSize: 12, color: "#888" }}>libavoid Routing</div>
+      <div style={rowStyle}>
+        <label>Connector Type</label>
+        <select
+          value={settings.connectorType}
+          onChange={(e) => onLayoutChange("connectorType", e.target.value)}
+          style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #ccc" }}
+        >
+          <option value="orthogonal">Orthogonal</option>
+          <option value="bezier">Bezier</option>
+          <option value="polyline">Polyline</option>
+        </select>
+      </div>
       {sliders.map(({ key, label, min, max }) => (
         <div key={key} style={rowStyle}>
           <label>{label}</label>

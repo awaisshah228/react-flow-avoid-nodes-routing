@@ -57,6 +57,8 @@ const rowStyle: React.CSSProperties = {
   marginBottom: 10,
 };
 
+type ConnectorType = "orthogonal" | "bezier" | "polyline";
+
 type StressSettings = {
   edgeRounding: number;
   edgeToEdgeSpacing: number;
@@ -65,6 +67,7 @@ type StressSettings = {
   autoBestSideConnection: boolean;
   resolveCollisionsEnabled: boolean;
   debounceMs: number;
+  connectorType: ConnectorType;
 };
 
 export default function StressTestFlow() {
@@ -79,6 +82,7 @@ export default function StressTestFlow() {
     autoBestSideConnection: true,
     resolveCollisionsEnabled: true,
     debounceMs: 0,
+    connectorType: "orthogonal",
   });
 
   const { updateRoutingOnNodesChange, resetRouting } =
@@ -113,7 +117,7 @@ export default function StressTestFlow() {
   }, [deferredReset, settings.resolveCollisionsEnabled]);
 
   const onSettingChange = useCallback(
-    (key: string, value: number | boolean) => {
+    (key: string, value: number | boolean | string) => {
       setSettings((prev) => ({ ...prev, [key]: value }));
     },
     []
@@ -156,6 +160,18 @@ export default function StressTestFlow() {
         </div>
         {open && (
           <>
+            <div style={rowStyle}>
+              <label>Connector Type</label>
+              <select
+                value={settings.connectorType}
+                onChange={(e) => onSettingChange("connectorType", e.target.value)}
+                style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #ccc" }}
+              >
+                <option value="orthogonal">Orthogonal</option>
+                <option value="bezier">Bezier</option>
+                <option value="polyline">Polyline</option>
+              </select>
+            </div>
             {sliders.map(({ key, label, min, max }) => (
               <div key={key} style={rowStyle}>
                 <label>{label}</label>

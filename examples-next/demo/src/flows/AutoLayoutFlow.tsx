@@ -40,6 +40,7 @@ export default function AutoLayoutFlow() {
     layoutDirection: "LR",
     layoutAlgorithm: "elk",
     layoutSpacing: 60,
+    connectorType: "orthogonal",
   });
 
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);

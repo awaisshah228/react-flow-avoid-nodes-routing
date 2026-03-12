@@ -55,6 +55,7 @@ export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
     shouldSplitEdgesNearHandle: true,
     autoBestSideConnection: true,
     resolveCollisions: true,
+    connectorType: "orthogonal",
   });
 
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);
@@ -99,7 +100,7 @@ export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
   );
 
   const onSettingChange = useCallback(
-    (key: string, value: number | boolean) => {
+    (key: string, value: number | boolean | string) => {
       setSettings((prev) => ({ ...prev, [key]: value }));
     },
     []

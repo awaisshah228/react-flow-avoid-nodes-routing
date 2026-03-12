@@ -43,6 +43,7 @@ export default function DAGFlow() {
     layoutDirection: "TB",
     layoutAlgorithm: "dagre",
     layoutSpacing: 60,
+    connectorType: "orthogonal",
   });
 
   const { updateRoutingOnNodesChange, resetRouting } = useAvoidNodesRouterFromWorker(nodes, edges, settings);

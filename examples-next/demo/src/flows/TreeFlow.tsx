@@ -71,6 +71,7 @@ export default function TreeFlow() {
     layoutDirection: "TB",
     layoutAlgorithm: "dagre",
     layoutSpacing: 50,
+    connectorType: "orthogonal",
   });
 
   const styledEdges = useMemo(() => applyEdgeType(edges, edgeStyle), [edges, edgeStyle]);
