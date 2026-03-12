@@ -30,7 +30,7 @@ export type FlowNode = {
   width?: number;
   height?: number;
   measured?: { width?: number; height?: number };
-  style?: { width?: number; height?: number };
+  style?: string | { width?: number; height?: number };
   type?: string;
   parentId?: string;
   sourcePosition?: string;
