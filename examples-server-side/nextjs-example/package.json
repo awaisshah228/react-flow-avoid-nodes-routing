@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.10.1",
-    "avoid-nodes-router": "^0.1.0",
+    "avoid-nodes-router": "*",
     "elkjs": "^0.9.3",
     "libavoid-js": "0.4.5",
     "next": "16.1.6",

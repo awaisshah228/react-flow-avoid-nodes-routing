@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.10.1",
-    "avoid-nodes-router": "^0.1.0",
+    "avoid-nodes-router": "*",
     "concurrently": "^9.0.0",
     "cors": "^2.8.5",
     "elkjs": "^0.9.3",
