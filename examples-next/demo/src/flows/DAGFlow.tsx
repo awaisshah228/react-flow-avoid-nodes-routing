@@ -107,9 +107,14 @@ export default function DAGFlow() {
   );
 
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, _node: Node) => {
+    (_event: React.MouseEvent, draggedNode: Node) => {
       if (settings.resolveCollisions) {
-        setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+        setNodes((nds) => {
+          const updated = nds.map(n =>
+            n.id === draggedNode.id ? { ...n, position: draggedNode.position } : n
+          );
+          return resolveCollisions(updated, { margin: 20, maxIterations: 50 });
+        });
       }
       deferredReset();
     },

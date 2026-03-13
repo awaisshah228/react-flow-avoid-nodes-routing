@@ -105,12 +105,20 @@ export default function StressTestFlow() {
     [deferredReset]
   );
 
-  const onNodeDragStop = useCallback(() => {
-    if (settings.resolveCollisionsEnabled) {
-      setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
-    }
-    deferredReset();
-  }, [deferredReset, settings.resolveCollisionsEnabled]);
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, draggedNode: Node) => {
+      if (settings.resolveCollisionsEnabled) {
+        setNodes((nds) => {
+          const updated = nds.map(n =>
+            n.id === draggedNode.id ? { ...n, position: draggedNode.position } : n
+          );
+          return resolveCollisions(updated, { margin: 20, maxIterations: 50 });
+        });
+      }
+      deferredReset();
+    },
+    [deferredReset, settings.resolveCollisionsEnabled]
+  );
 
   const onSettingChange = useCallback(
     (key: string, value: number | boolean) => {
