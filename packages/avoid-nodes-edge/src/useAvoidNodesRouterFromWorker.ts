@@ -74,9 +74,12 @@ export function useAvoidNodesRouterFromWorker(
   const opts = toRouterOptions(options);
   const optsRef = useRef<AvoidRouterOptions>(opts);
 
-  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
-  useEffect(() => { edgesRef.current = edges; }, [edges]);
-  useEffect(() => { optsRef.current = opts; });
+  // Update refs eagerly during render so that callbacks (like resetRouting
+  // called from requestAnimationFrame) always see the latest data — useEffect
+  // runs too late and causes stale reads after collision resolution.
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
+  optsRef.current = opts;
 
   const setRoutes = useAvoidRoutesStore((s) => s.setRoutes);
   const setActions = useAvoidRouterActionsStore((s) => s.setActions);

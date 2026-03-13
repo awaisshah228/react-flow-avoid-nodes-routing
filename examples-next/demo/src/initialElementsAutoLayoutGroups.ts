@@ -18,7 +18,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "api-input",
     data: { label: "API Input" },
-    position: { x: 40, y: 50 },
+    position: { x: 110, y: 50 },
     parentId: "group-ingestion",
     expandParent: true,
     style: { width: 120, height: 50 },
@@ -26,7 +26,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "file-input",
     data: { label: "File Input" },
-    position: { x: 40, y: 140 },
+    position: { x: 110, y: 140 },
     parentId: "group-ingestion",
     expandParent: true,
     style: { width: 120, height: 50 },
@@ -34,7 +34,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "stream-input",
     data: { label: "Stream Input" },
-    position: { x: 40, y: 230 },
+    position: { x: 110, y: 230 },
     parentId: "group-ingestion",
     expandParent: true,
     style: { width: 120, height: 50 },
@@ -57,7 +57,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "validate",
     data: { label: "Validate" },
-    position: { x: 40, y: 50 },
+    position: { x: 110, y: 50 },
     parentId: "group-processing",
     expandParent: true,
     style: { width: 120, height: 50 },
@@ -65,7 +65,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "transform",
     data: { label: "Transform" },
-    position: { x: 40, y: 150 },
+    position: { x: 110, y: 150 },
     parentId: "group-processing",
     expandParent: true,
     style: { width: 120, height: 50 },
@@ -88,7 +88,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "cache",
     data: { label: "Cache" },
-    position: { x: 40, y: 50 },
+    position: { x: 110, y: 50 },
     parentId: "group-storage",
     expandParent: true,
     style: { width: 120, height: 50 },
@@ -96,7 +96,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "database",
     data: { label: "Database" },
-    position: { x: 40, y: 140 },
+    position: { x: 110, y: 140 },
     parentId: "group-storage",
     expandParent: true,
     style: { width: 120, height: 50 },
@@ -104,7 +104,7 @@ export const autoLayoutGroupNodes: Node[] = [
   {
     id: "archive",
     data: { label: "Archive" },
-    position: { x: 40, y: 230 },
+    position: { x: 110, y: 230 },
     parentId: "group-storage",
     expandParent: true,
     style: { width: 120, height: 50 },

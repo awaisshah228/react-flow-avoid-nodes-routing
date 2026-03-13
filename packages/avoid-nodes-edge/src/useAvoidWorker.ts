@@ -64,7 +64,15 @@ export function useAvoidWorker(options?: UseAvoidWorkerOptions): UseAvoidWorkerR
       onCollisionsResolved: (nodes) => onCollisionsResolvedRef.current?.(nodes),
     });
 
+    // Terminate worker on page unload (useEffect cleanup doesn't run on refresh)
+    const onBeforeUnload = () => {
+      worker.postMessage({ command: "close" } as AvoidRouterWorkerCommand);
+      worker.terminate();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
       cleanup();
       worker.postMessage({ command: "close" } as AvoidRouterWorkerCommand);
       worker.terminate();

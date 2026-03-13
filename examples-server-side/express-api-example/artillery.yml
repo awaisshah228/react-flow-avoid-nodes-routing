@@ -1,0 +1,49 @@
+config:
+  target: "http://localhost:3004"
+  phases:
+    - duration: 10
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 30
+      arrivalRate: 20
+      name: "Ramp up"
+    - duration: 20
+      arrivalRate: 50
+      name: "Peak load"
+
+scenarios:
+  - name: "Health check"
+    weight: 1
+    flow:
+      - get:
+          url: "/api/health"
+
+  - name: "Ping"
+    weight: 1
+    flow:
+      - get:
+          url: "/api/ping"
+
+  - name: "List tabs"
+    weight: 2
+    flow:
+      - get:
+          url: "/api/tabs"
+
+  - name: "Route basic diagram"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/diagram?tab=basic"
+
+  - name: "Route groups diagram"
+    weight: 3
+    flow:
+      - get:
+          url: "/api/diagram?tab=groups"
+
+  - name: "Route nested-groups diagram"
+    weight: 2
+    flow:
+      - get:
+          url: "/api/diagram?tab=nested-groups"

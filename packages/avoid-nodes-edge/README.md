@@ -16,6 +16,8 @@ Orthogonal edge routing for [React Flow](https://reactflow.dev/) — edges autom
 
 > **Using Svelte Flow?** Check out [avoid-nodes-edge-svelte](https://www.npmjs.com/package/avoid-nodes-edge-svelte) — the same routing engine, built for Svelte Flow.
 
+> **Need server-side routing?** Use [avoid-nodes-router](https://www.npmjs.com/package/avoid-nodes-router) — the standalone routing engine (no React/browser dependency) for Node.js, Express, or any server environment.
+
 ## Features
 
 - Orthogonal (right-angle) edge routing that avoids overlapping nodes

@@ -64,11 +64,9 @@ export default function AutoLayoutFlow() {
 
   useEffect(() => {
     if (!didLayout.current) {
-      const timer = setTimeout(() => {
-        didLayout.current = true;
-        applyLayout(nodes);
-      }, 100);
-      return () => clearTimeout(timer);
+      didLayout.current = true;
+      applyLayout(nodes);
+      return;
     }
     applyLayout(nodes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,9 +102,16 @@ export default function AutoLayoutFlow() {
   );
 
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, _node: Node) => {
+    (_event: React.MouseEvent, _draggedNode: Node, draggedNodes: Node[]) => {
       if (settings.resolveCollisions) {
-        setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+        setNodes((nds) => {
+          const posMap = new Map(draggedNodes.map(n => [n.id, n.position]));
+          const updated = nds.map(n => {
+            const pos = posMap.get(n.id);
+            return pos ? { ...n, position: pos } : n;
+          });
+          return resolveCollisions(updated, { margin: 20, maxIterations: 50 });
+        });
       }
       deferredReset();
     },

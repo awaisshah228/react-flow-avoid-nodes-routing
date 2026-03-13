@@ -7,6 +7,7 @@ import {
   addEdge,
   type Node,
   type Edge,
+  type EdgeTypes,
   type NodeChange,
   type EdgeChange,
   type Connection,
@@ -16,7 +17,8 @@ import '@xyflow/react/dist/style.css';
 import { useAvoidNodesRouterFromWorker } from 'avoid-nodes-edge';
 import { AvoidNodesEdge } from 'avoid-nodes-edge/edge';
 
-const edgeTypes = { avoidNodes: AvoidNodesEdge };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const edgeTypes: EdgeTypes = { avoidNodes: AvoidNodesEdge as any };
 
 const initialNodes: Node[] = [
   { id: '1', position: { x: 0, y: 0 }, data: { label: 'Node 1' } },

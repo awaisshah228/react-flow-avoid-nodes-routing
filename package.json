@@ -9,7 +9,9 @@
     "examples-next/remote-basic",
     "examples-next/nextjs-latest-basic",
     "examples-svelte/demo",
-    "examples-svelte/basic"
+    "examples-svelte/basic",
+    "examples-server-side/express-api-example",
+    "examples-server-side/nextjs-example"
   ],
   "scripts": {
     "build": "turbo run build",

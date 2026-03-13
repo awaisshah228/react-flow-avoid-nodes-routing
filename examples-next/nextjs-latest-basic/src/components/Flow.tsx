@@ -12,6 +12,7 @@ import {
   MiniMap,
   type Node,
   type Edge,
+  type EdgeTypes,
   type NodeChange,
   type EdgeChange,
   type Connection,
@@ -22,7 +23,8 @@ import { useAvoidNodesRouterFromWorker } from "avoid-nodes-edge";
 import { AvoidNodesEdge } from "avoid-nodes-edge/edge";
 import { resolveCollisions } from "../utils/resolve-collisions";
 
-const edgeTypes = { avoidNodes: AvoidNodesEdge };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const edgeTypes: EdgeTypes = { avoidNodes: AvoidNodesEdge as any };
 
 const initialNodes: Node[] = [
   { id: "1", position: { x: 0, y: 0 }, data: { label: "Node 1" } },
@@ -74,8 +76,13 @@ function FlowInner() {
   );
 
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, _node: Node) => {
-      setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+    (_event: React.MouseEvent, draggedNode: Node) => {
+      setNodes((nds) => {
+        const updated = nds.map(n =>
+          n.id === draggedNode.id ? { ...n, position: draggedNode.position } : n
+        );
+        return resolveCollisions(updated, { margin: 20, maxIterations: 50 });
+      });
       deferredReset();
     },
     [deferredReset]

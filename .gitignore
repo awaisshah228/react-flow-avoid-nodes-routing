@@ -5,3 +5,4 @@ dist
 .turbo
 .vercel
 examples-svelte/demo/vercel.json
+DEPLOY.md

@@ -27,7 +27,7 @@
 
   let settings = {
     edgeRounding: 8,
-    edgeToEdgeSpacing: 10,
+    edgeToEdgeSpacing: 7,
     edgeToNodeSpacing: 12,
     diagramGridSize: 0,
     shouldSplitEdgesNearHandle: true,

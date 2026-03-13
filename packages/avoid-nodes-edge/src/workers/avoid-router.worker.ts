@@ -1,6 +1,6 @@
 /**
  * Web Worker: loads AvoidRouter (WASM) and handles routing commands.
- * WASM loads exclusively in this worker — never on the main thread.
+ * Uses PersistentRouter to prevent WASM heap growth from repeated alloc/free.
  */
 
 import "./worker-polyfill";
@@ -12,7 +12,7 @@ import {
   type FlowNode,
   type FlowEdge,
   loadWasmWithRetry,
-  routeAllCore,
+  PersistentRouter,
 } from "../routing-core";
 import { resolveCollisions, type ResolveCollisionsOptions } from "../resolve-collisions";
 
@@ -47,6 +47,19 @@ const routerLoaded = loadWasmWithRetry().then((lib) => {
 let currentNodes: FlowNode[] = [];
 let currentEdges: FlowEdge[] = [];
 let currentOptions: AvoidRouterOptions = {};
+let nodeIndex = new Map<string, number>();
+let edgeIndex = new Map<string, number>();
+let topologyDirty = true;
+let positionDirty = false;
+let pendingNodeUpdates: FlowNode[] = [];
+
+const persistentRouter = new PersistentRouter();
+
+function rebuildIndices() {
+  nodeIndex = new Map(currentNodes.map((n, i) => [n.id, i]));
+  edgeIndex = new Map(currentEdges.map((e, i) => [e.id, i]));
+}
+
 function isNode(cell: FlowNode | FlowEdge): cell is FlowNode {
   return "position" in cell && ("width" in cell || "measured" in cell || !("source" in cell));
 }
@@ -56,7 +69,18 @@ function doRoute(): Record<string, AvoidRoute> {
   const avoidEdges = currentEdges.filter((e) => e.type === "avoidNodes");
   if (avoidEdges.length === 0) return {};
   try {
-    return routeAllCore(avoidLib, currentNodes, avoidEdges, currentOptions);
+    if (topologyDirty) {
+      topologyDirty = false;
+      positionDirty = false;
+      pendingNodeUpdates = [];
+      return persistentRouter.reset(avoidLib, currentNodes, avoidEdges, currentOptions);
+    } else if (positionDirty && pendingNodeUpdates.length > 0) {
+      positionDirty = false;
+      const updates = pendingNodeUpdates;
+      pendingNodeUpdates = [];
+      return persistentRouter.updateNodes(updates);
+    }
+    return persistentRouter.reset(avoidLib, currentNodes, avoidEdges, currentOptions);
   } catch {
     return {};
   }
@@ -102,19 +126,29 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       currentNodes = msg.nodes ?? [];
       currentEdges = msg.edges ?? [];
       if (msg.options) currentOptions = msg.options;
+      rebuildIndices();
+      topologyDirty = true;
+      pendingNodeUpdates = [];
       debouncedRoute();
       break;
 
     case "change": {
       const cell = msg.cell;
       if (isNode(cell)) {
-        const i = currentNodes.findIndex((n) => n.id === cell.id);
-        if (i >= 0) currentNodes[i] = { ...currentNodes[i], ...cell };
-        else currentNodes.push(cell);
+        const i = nodeIndex.get(cell.id);
+        if (i != null) {
+          currentNodes[i] = { ...currentNodes[i], ...cell };
+          if (!topologyDirty) { positionDirty = true; pendingNodeUpdates.push(currentNodes[i]); }
+        } else {
+          nodeIndex.set(cell.id, currentNodes.length);
+          currentNodes.push(cell);
+          topologyDirty = true;
+        }
       } else {
-        const i = currentEdges.findIndex((ed) => ed.id === cell.id);
-        if (i >= 0) currentEdges[i] = { ...currentEdges[i], ...cell };
-        else currentEdges.push(cell);
+        const i = edgeIndex.get(cell.id);
+        if (i != null) currentEdges[i] = { ...currentEdges[i], ...cell };
+        else { edgeIndex.set(cell.id, currentEdges.length); currentEdges.push(cell); }
+        topologyDirty = true;
       }
       debouncedRoute();
       break;
@@ -124,6 +158,9 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       const id = msg.id;
       currentNodes = currentNodes.filter((n) => n.id !== id);
       currentEdges = currentEdges.filter((ed) => ed.id !== id);
+      rebuildIndices();
+      topologyDirty = true;
+      pendingNodeUpdates = [];
       debouncedRoute();
       break;
     }
@@ -131,10 +168,11 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
     case "add": {
       const cell = msg.cell;
       if (isNode(cell)) {
-        if (!currentNodes.some((n) => n.id === cell.id)) currentNodes.push(cell);
+        if (!nodeIndex.has(cell.id)) { nodeIndex.set(cell.id, currentNodes.length); currentNodes.push(cell); }
       } else {
-        if (!currentEdges.some((ed) => ed.id === cell.id)) currentEdges.push(cell);
+        if (!edgeIndex.has(cell.id)) { edgeIndex.set(cell.id, currentEdges.length); currentEdges.push(cell); }
       }
+      topologyDirty = true;
       debouncedRoute();
       break;
     }
@@ -142,9 +180,15 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
     case "updateNodes": {
       const updatedNodes = msg.nodes ?? [];
       for (const updated of updatedNodes) {
-        const i = currentNodes.findIndex((n) => n.id === updated.id);
-        if (i >= 0) currentNodes[i] = { ...currentNodes[i], ...updated };
-        else currentNodes.push(updated);
+        const i = nodeIndex.get(updated.id);
+        if (i != null) {
+          currentNodes[i] = { ...currentNodes[i], ...updated };
+          if (!topologyDirty) { positionDirty = true; pendingNodeUpdates.push(currentNodes[i]); }
+        } else {
+          nodeIndex.set(updated.id, currentNodes.length);
+          currentNodes.push(updated);
+          topologyDirty = true;
+        }
       }
       debouncedRoute();
       break;
@@ -163,7 +207,7 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
         break;
       }
       try {
-        const routes = routeAllCore(avoidLib, routeNodes, routeEdges, routeOptions);
+        const routes = persistentRouter.reset(avoidLib, routeNodes, routeEdges, routeOptions);
         postMessage({ command: "routed", routes } as const);
       } catch {
         postMessage({ command: "routed", routes: {} } as const);
@@ -174,19 +218,19 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
     case "resolveCollisions": {
       const collisionNodes = (msg.nodes ?? currentNodes) as import("@xyflow/react").Node[];
       const resolved = resolveCollisions(collisionNodes, msg.options);
-      // Update internal model with resolved positions
       for (const node of resolved) {
-        const i = currentNodes.findIndex((n) => n.id === node.id);
-        if (i >= 0) currentNodes[i] = { ...currentNodes[i], position: node.position };
+        const i = nodeIndex.get(node.id);
+        if (i != null) currentNodes[i] = { ...currentNodes[i], position: node.position };
       }
       postMessage({ command: "collisionsResolved", nodes: resolved } as const);
-      // Re-route edges with the updated node positions
+      topologyDirty = true;
       debouncedRoute();
       break;
     }
 
     case "close":
       cancelDebounce();
+      persistentRouter.destroy();
       self.close();
       break;
 
