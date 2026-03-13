@@ -396,6 +396,7 @@ async function main() {
 
   app.listen(PORT, () => {
     console.log(`Express API server listening on http://localhost:${PORT}`);
+    console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
   });
 }
 

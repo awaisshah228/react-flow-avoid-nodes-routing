@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev:server": "tsx src/server.ts",
+    "dev:server": "tsx watch src/server.ts",
     "dev:client": "vite",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build": "vite build"
@@ -19,7 +19,7 @@
     "libavoid-js": "0.4.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "swagger-ui-express": "^5.0.1",
+    "swagger-ui-dist": "^5.32.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
@@ -28,8 +28,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@types/swagger-ui-express": "^4.1.8",
-    "@vitejs/plugin-react": "^5.1.1",
+"@vitejs/plugin-react": "^5.1.1",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1"
