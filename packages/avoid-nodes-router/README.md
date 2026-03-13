@@ -51,83 +51,56 @@ pnpm add avoid-nodes-router
 
 ## Quick Start
 
-### Using the Handler (recommended)
-
-The handler manages a Worker thread per client/session. Wire `handleMessage()` to your transport of choice.
-
-```ts
-import { createRoutingHandler } from 'avoid-nodes-router';
-
-// Create a handler (one per client/session)
-const handler = createRoutingHandler();
-
-// Send a routing request
-const response = await handler.handleMessage({
-  command: 'reset',
-  nodes: [
-    { id: '1', position: { x: 0, y: 0 }, width: 150, height: 50 },
-    { id: '2', position: { x: 300, y: 0 }, width: 150, height: 50 },
-    { id: '3', position: { x: 150, y: 150 }, width: 150, height: 50 },
-  ],
-  edges: [
-    { id: 'e1-2', source: '1', target: '2', type: 'avoidNodes' },
-  ],
-  options: {
-    shapeBufferDistance: 12,
-    idealNudgingDistance: 10,
-    edgeRounding: 8,
-  },
-});
-
-console.log(response);
-// { command: 'routed', routes: { 'e1-2': { path: 'M ...', labelX: 250, labelY: 25 } } }
-
-// Clean up on disconnect
-handler.destroy();
-```
-
 ### Express Example
+
+A full Express API that loads WASM once at startup, computes ELK layout for node positions, expands group nodes, and routes edges server-side — returning everything ready to render:
 
 ```ts
 import express from 'express';
-import { createRoutingHandler } from 'avoid-nodes-router';
+import { loadAvoidWasm, routeAll } from 'avoid-nodes-router';
+import type { FlowNode, FlowEdge } from 'avoid-nodes-router';
 
-const app = express();
-app.use(express.json());
+async function main() {
+  // Load WASM once at startup
+  await loadAvoidWasm();
 
-app.post('/api/route', async (req, res) => {
-  const handler = createRoutingHandler();
-  try {
-    const result = await handler.handleMessage(req.body);
-    res.json(result);
-  } finally {
-    handler.destroy();
-  }
-});
+  const app = express();
+  app.use(express.json());
 
-app.listen(3001);
-```
+  app.get('/api/diagram', async (req, res) => {
+    const nodes: FlowNode[] = [
+      { id: '1', position: { x: 0, y: 0 }, width: 150, height: 50 },
+      { id: '2', position: { x: 300, y: 0 }, width: 150, height: 50 },
+      { id: '3', position: { x: 150, y: 150 }, width: 150, height: 50 },
+    ];
 
-### WebSocket Example
+    const edges: FlowEdge[] = [
+      { id: 'e1-2', source: '1', target: '2', type: 'avoidNodes' },
+      { id: 'e1-3', source: '1', target: '3', type: 'avoidNodes' },
+    ];
 
-```ts
-import { WebSocketServer } from 'ws';
-import { createRoutingHandler } from 'avoid-nodes-router';
+    // Compute edge routing paths that avoid nodes
+    const routes = routeAll(nodes, edges, {
+      shapeBufferDistance: 12,
+      idealNudgingDistance: 10,
+      edgeRounding: 8,
+      autoBestSideConnection: true,
+      shouldSplitEdgesNearHandle: true,
+    });
 
-const wss = new WebSocketServer({ port: 8080 });
-
-wss.on('connection', (ws) => {
-  const handler = createRoutingHandler();
-
-  ws.on('message', async (data) => {
-    const msg = JSON.parse(data.toString());
-    const response = await handler.handleMessage(msg);
-    ws.send(JSON.stringify(response));
+    // Return nodes, edges, and pre-computed routes
+    res.json({ nodes, edges, routes });
   });
 
-  ws.on('close', () => handler.destroy());
-});
+  app.listen(3001, () => {
+    console.log('Server listening on http://localhost:3001');
+  });
+}
+
+main().catch(console.error);
 ```
+
+See the [express-api-example](https://github.com/awaisshah228/react-flow-avoid-nodes-routing/tree/turbo-package/examples-server-side/express-api-example) for a complete implementation with ELK layout, group node expansion, and multiple diagram tabs.
 
 ### Using the Routing Engine Directly
 
