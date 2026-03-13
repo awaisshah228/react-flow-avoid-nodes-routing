@@ -57,9 +57,12 @@ export default function AutoLayoutGroupsFlow() {
         spacing: settings.layoutSpacing,
       });
       setNodes(laid);
+      // Wait for React Flow to measure repositioned nodes before routing
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        resetRouting();
-        fitView({ duration: 300 });
+        setTimeout(() => {
+          resetRouting();
+          fitView({ duration: 300 });
+        }, 50);
       }));
     },
     [edges, settings.layoutDirection, settings.layoutAlgorithm, settings.layoutSpacing, resetRouting, fitView]
@@ -67,11 +70,9 @@ export default function AutoLayoutGroupsFlow() {
 
   useEffect(() => {
     if (!didLayout.current) {
-      const timer = setTimeout(() => {
-        didLayout.current = true;
-        applyLayout(nodes);
-      }, 100);
-      return () => clearTimeout(timer);
+      didLayout.current = true;
+      applyLayout(nodes);
+      return;
     }
     applyLayout(nodes);
     // eslint-disable-next-line react-hooks/exhaustive-deps

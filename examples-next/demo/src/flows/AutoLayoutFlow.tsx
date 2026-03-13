@@ -64,11 +64,9 @@ export default function AutoLayoutFlow() {
 
   useEffect(() => {
     if (!didLayout.current) {
-      const timer = setTimeout(() => {
-        didLayout.current = true;
-        applyLayout(nodes);
-      }, 100);
-      return () => clearTimeout(timer);
+      didLayout.current = true;
+      applyLayout(nodes);
+      return;
     }
     applyLayout(nodes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
