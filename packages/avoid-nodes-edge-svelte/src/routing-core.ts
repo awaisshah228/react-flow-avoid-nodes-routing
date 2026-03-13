@@ -361,10 +361,6 @@ export function routeAllCore(
     const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
     const rect = new Avoid.Rectangle(topLeft, bottomRight);
     const shapeRef = new Avoid.ShapeRef(router, rect);
-    // Free transient WASM geometry objects to prevent heap leaks
-    try { (topLeft as { delete?: () => void }).delete?.(); } catch { /* ok */ }
-    try { (bottomRight as { delete?: () => void }).delete?.(); } catch { /* ok */ }
-    try { (rect as { delete?: () => void }).delete?.(); } catch { /* ok */ }
     shapeRefs.push({ ref: shapeRef });
     shapeRefMap.set(node.id, shapeRef);
     for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
@@ -398,30 +394,22 @@ export function routeAllCore(
       } else {
         const sb = getNodeBoundsAbsolute(src, nodeById);
         const sourcePt = getHandlePoint(sb, sourcePos);
-        const pt = new Avoid.Point(sourcePt.x, sourcePt.y);
-        srcEnd = new Avoid.ConnEnd(pt);
-        try { (pt as { delete?: () => void }).delete?.(); } catch { /* ok */ }
+        srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
       }
       if (tgtShapeRef) {
         tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
       } else {
         const tb = getNodeBoundsAbsolute(tgt, nodeById);
         const targetPt = getHandlePoint(tb, targetPos);
-        const pt = new Avoid.Point(targetPt.x, targetPt.y);
-        tgtEnd = new Avoid.ConnEnd(pt);
-        try { (pt as { delete?: () => void }).delete?.(); } catch { /* ok */ }
+        tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
       }
     } else {
       const sb = getNodeBoundsAbsolute(src, nodeById);
       const sourcePt = getHandlePoint(sb, sourcePos);
-      const srcPt = new Avoid.Point(sourcePt.x, sourcePt.y);
-      srcEnd = new Avoid.ConnEnd(srcPt);
-      try { (srcPt as { delete?: () => void }).delete?.(); } catch { /* ok */ }
+      srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
       const tb = getNodeBoundsAbsolute(tgt, nodeById);
       const targetPt = getHandlePoint(tb, targetPos);
-      const tgtPt = new Avoid.Point(targetPt.x, targetPt.y);
-      tgtEnd = new Avoid.ConnEnd(tgtPt);
-      try { (tgtPt as { delete?: () => void }).delete?.(); } catch { /* ok */ }
+      tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
     }
     const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
     connRef.setRoutingType(Avoid.ConnType_Orthogonal);
