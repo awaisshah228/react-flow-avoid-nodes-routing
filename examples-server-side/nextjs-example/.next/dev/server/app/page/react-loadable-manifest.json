@@ -1,11 +1,11 @@
 {
-  "[project]/avoid-nodes-pro-example/examples-server/nextjs-example/src/components/DiagramView.tsx [app-client] (ecmascript, next/dynamic entry)": {
-    "id": "[project]/avoid-nodes-pro-example/examples-server/nextjs-example/src/components/DiagramView.tsx [app-client] (ecmascript, next/dynamic entry)",
+  "[project]/avoid-nodes-pro-example/examples-server-side/nextjs-example/src/components/DiagramView.tsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/avoid-nodes-pro-example/examples-server-side/nextjs-example/src/components/DiagramView.tsx [app-client] (ecmascript, next/dynamic entry)",
     "files": [
-      "static/chunks/avoid-nodes-pro-example_b9f3d08a._.js",
-      "static/chunks/avoid-nodes-pro-example_examples-server_nextjs-example_src_components_ae7bc3ae._.js",
-      "static/chunks/f7b54_@xyflow_react_dist_style_e908f6d4.css",
-      "static/chunks/3a58b_examples-server_nextjs-example_src_components_DiagramView_tsx_0bda657a._.js"
+      "static/chunks/avoid-nodes-pro-example_9ccda446._.js",
+      "static/chunks/174ed_id-nodes-pro-example_examples-server-side_nextjs-example_src_components_b9c822af._.js",
+      "static/chunks/55ec3_@xyflow_react_dist_style_7b0f4ca5.css",
+      "static/chunks/3a58b_examples-server-side_nextjs-example_src_components_DiagramView_tsx_ae051e1f._.js"
     ]
   }
 }

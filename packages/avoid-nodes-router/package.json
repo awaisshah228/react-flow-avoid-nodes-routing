@@ -15,7 +15,8 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup",

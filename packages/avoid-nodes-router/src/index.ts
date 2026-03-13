@@ -14,7 +14,7 @@
  * Wire handler.handleMessage to any transport: WebSocket, SSE, HTTP POST, IPC, etc.
  */
 
-export { loadAvoidWasm, getAvoidLib, routeAll } from "./routing-engine";
+export { loadAvoidWasm, getAvoidLib, routeAll, PersistentServerRouter } from "./routing-engine";
 export type {
   FlowNode,
   FlowEdge,

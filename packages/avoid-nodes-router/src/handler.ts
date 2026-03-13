@@ -83,11 +83,17 @@ export function createRoutingHandler(): RoutingHandler {
   });
 
   worker.on("error", (err) => {
-    // Resolve all pending requests with error
-    for (const [id, entry] of pending) {
+    for (const [, entry] of pending) {
       entry.resolve({ command: "error", message: err.message });
-      pending.delete(id);
     }
+    pending.clear();
+  });
+
+  worker.on("exit", (code) => {
+    for (const [, entry] of pending) {
+      entry.resolve({ command: "error", message: `Worker exited with code ${code}` });
+    }
+    pending.clear();
   });
 
   async function handleMessage(msg: RoutingRequest): Promise<RoutingResponse> {

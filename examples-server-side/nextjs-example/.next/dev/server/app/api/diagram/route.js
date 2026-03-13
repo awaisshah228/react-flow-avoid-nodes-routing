@@ -1,11 +1,11 @@
 var R=require("../../../chunks/[turbopack]_runtime.js")("server/app/api/diagram/route.js")
-R.c("server/chunks/[externals]_libavoid-js_ef0c21d1._.js")
-R.c("server/chunks/f7b54_next_663b181e._.js")
+R.c("server/chunks/[externals]_libavoid-js_8be04509._.js")
+R.c("server/chunks/55ec3_next_676ad57e._.js")
 R.c("server/chunks/node_modules_@opentelemetry_api_build_esm_7e8f41ca._.js")
 R.c("server/chunks/dae4a_elkjs_lib_elk-worker_min_b63c4bff.js")
 R.c("server/chunks/dae4a_elkjs_lib_1754b41a._.js")
 R.c("server/chunks/node_modules_web-worker_src_node_index_f9f4bcd8.js")
-R.c("server/chunks/[root-of-the-server]__2027d27f._.js")
-R.c("server/chunks/2e267_nextjs-example__next-internal_server_app_api_diagram_route_actions_0e7ad124.js")
-R.m("[project]/avoid-nodes-pro-example/examples-server/nextjs-example/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/avoid-nodes-pro-example/examples-server/nextjs-example/src/app/api/diagram/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
-module.exports=R.m("[project]/avoid-nodes-pro-example/examples-server/nextjs-example/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/avoid-nodes-pro-example/examples-server/nextjs-example/src/app/api/diagram/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports
+R.c("server/chunks/[root-of-the-server]__09729959._.js")
+R.c("server/chunks/4efe7_nextjs-example__next-internal_server_app_api_diagram_route_actions_be5a9a7a.js")
+R.m("[project]/avoid-nodes-pro-example/examples-server-side/nextjs-example/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/avoid-nodes-pro-example/examples-server-side/nextjs-example/src/app/api/diagram/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
+module.exports=R.m("[project]/avoid-nodes-pro-example/examples-server-side/nextjs-example/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/avoid-nodes-pro-example/examples-server-side/nextjs-example/src/app/api/diagram/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports

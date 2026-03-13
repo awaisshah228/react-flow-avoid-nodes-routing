@@ -255,6 +255,10 @@ export function routeAll(
     const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
     const rect = new Avoid.Rectangle(topLeft, bottomRight);
     const shapeRef = new Avoid.ShapeRef(router, rect);
+    // Free transient WASM geometry objects to prevent heap leaks
+    try { topLeft.delete?.(); } catch { /* ok */ }
+    try { bottomRight.delete?.(); } catch { /* ok */ }
+    try { rect.delete?.(); } catch { /* ok */ }
     shapeRefs.push(shapeRef);
     shapeRefMap.set(node.id, shapeRef);
     for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
@@ -284,17 +288,21 @@ export function routeAll(
     if (splitNearHandle) {
       srcEnd = srcShapeRef
         ? new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER)
-        : (() => { const sb = getNodeBoundsAbsolute(src, nodeById); const pt = getHandlePoint(sb, sourcePos); return new Avoid.ConnEnd(new Avoid.Point(pt.x, pt.y)); })();
+        : (() => { const sb = getNodeBoundsAbsolute(src, nodeById); const pt = getHandlePoint(sb, sourcePos); const p = new Avoid.Point(pt.x, pt.y); const end = new Avoid.ConnEnd(p); try { p.delete?.(); } catch { /* ok */ } return end; })();
       tgtEnd = tgtShapeRef
         ? new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER)
-        : (() => { const tb = getNodeBoundsAbsolute(tgt, nodeById); const pt = getHandlePoint(tb, targetPos); return new Avoid.ConnEnd(new Avoid.Point(pt.x, pt.y)); })();
+        : (() => { const tb = getNodeBoundsAbsolute(tgt, nodeById); const pt = getHandlePoint(tb, targetPos); const p = new Avoid.Point(pt.x, pt.y); const end = new Avoid.ConnEnd(p); try { p.delete?.(); } catch { /* ok */ } return end; })();
     } else {
       const sb = getNodeBoundsAbsolute(src, nodeById);
       const sourcePt = getHandlePoint(sb, sourcePos);
-      srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+      const srcPt = new Avoid.Point(sourcePt.x, sourcePt.y);
+      srcEnd = new Avoid.ConnEnd(srcPt);
+      try { srcPt.delete?.(); } catch { /* ok */ }
       const tb = getNodeBoundsAbsolute(tgt, nodeById);
       const targetPt = getHandlePoint(tb, targetPos);
-      tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
+      const tgtPt = new Avoid.Point(targetPt.x, targetPt.y);
+      tgtEnd = new Avoid.ConnEnd(tgtPt);
+      try { tgtPt.delete?.(); } catch { /* ok */ }
     }
     const connRef = new Avoid.ConnRef(router, srcEnd, tgtEnd);
     connRef.setRoutingType(Avoid.ConnType_Orthogonal);
@@ -367,6 +375,19 @@ export class PersistentServerRouter {
     return { nodes: this.currentNodes, edges: this.currentEdges, options: this.currentOptions };
   }
 
+  private upsertNode(updated: FlowNode) {
+    const existing = this.nodeById.get(updated.id);
+    if (existing) {
+      const merged = { ...existing, ...updated };
+      const i = this.currentNodes.indexOf(existing);
+      if (i >= 0) this.currentNodes[i] = merged;
+      this.nodeById.set(updated.id, merged);
+    } else {
+      this.currentNodes.push(updated);
+      this.nodeById.set(updated.id, updated);
+    }
+  }
+
   destroy() {
     if (this.router) {
       cleanup(this.router, this.connRefs, this.shapeRefs);
@@ -388,23 +409,16 @@ export class PersistentServerRouter {
 
   updateNodes(updatedNodes: FlowNode[]): Record<string, AvoidRoute> {
     if (!this.router) {
-      // No active router, do a full reset
       for (const updated of updatedNodes) {
-        const i = this.currentNodes.findIndex((n) => n.id === updated.id);
-        if (i >= 0) this.currentNodes[i] = { ...this.currentNodes[i], ...updated };
-        else this.currentNodes.push(updated);
+        this.upsertNode(updated);
       }
       this.nodeById = new Map(this.currentNodes.map((n) => [n.id, n]));
       return this.buildRouter();
     }
 
     const Avoid = getAvoidLib();
-    // Move existing shapes
     for (const updated of updatedNodes) {
-      const i = this.currentNodes.findIndex((n) => n.id === updated.id);
-      if (i >= 0) this.currentNodes[i] = { ...this.currentNodes[i], ...updated };
-      else this.currentNodes.push(updated);
-      this.nodeById.set(updated.id, this.currentNodes[i >= 0 ? i : this.currentNodes.length - 1]);
+      this.upsertNode(updated);
 
       const shapeRef = this.shapeRefMap.get(updated.id);
       if (shapeRef && updated.position) {
@@ -413,6 +427,10 @@ export class PersistentServerRouter {
         const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
         const newPoly = new Avoid.Rectangle(topLeft, bottomRight);
         this.router.moveShape(shapeRef, newPoly);
+        // Free transient WASM geometry objects
+        try { topLeft.delete?.(); } catch { /* ok */ }
+        try { bottomRight.delete?.(); } catch { /* ok */ }
+        try { newPoly.delete?.(); } catch { /* ok */ }
       }
     }
 
@@ -462,6 +480,9 @@ export class PersistentServerRouter {
       const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
       const rect = new Avoid.Rectangle(topLeft, bottomRight);
       const shapeRef = new Avoid.ShapeRef(this.router, rect);
+      try { topLeft.delete?.(); } catch { /* ok */ }
+      try { bottomRight.delete?.(); } catch { /* ok */ }
+      try { rect.delete?.(); } catch { /* ok */ }
       this.shapeRefs.push(shapeRef);
       this.shapeRefMap.set(node.id, shapeRef);
       for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
@@ -492,17 +513,21 @@ export class PersistentServerRouter {
       if (splitNearHandle) {
         srcEnd = srcShapeRef
           ? new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER)
-          : (() => { const sb = getNodeBoundsAbsolute(src, this.nodeById); const pt = getHandlePoint(sb, sourcePos); return new Avoid.ConnEnd(new Avoid.Point(pt.x, pt.y)); })();
+          : (() => { const sb = getNodeBoundsAbsolute(src, this.nodeById); const pt = getHandlePoint(sb, sourcePos); const p = new Avoid.Point(pt.x, pt.y); const end = new Avoid.ConnEnd(p); try { p.delete?.(); } catch { /* ok */ } return end; })();
         tgtEnd = tgtShapeRef
           ? new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER)
-          : (() => { const tb = getNodeBoundsAbsolute(tgt, this.nodeById); const pt = getHandlePoint(tb, targetPos); return new Avoid.ConnEnd(new Avoid.Point(pt.x, pt.y)); })();
+          : (() => { const tb = getNodeBoundsAbsolute(tgt, this.nodeById); const pt = getHandlePoint(tb, targetPos); const p = new Avoid.Point(pt.x, pt.y); const end = new Avoid.ConnEnd(p); try { p.delete?.(); } catch { /* ok */ } return end; })();
       } else {
         const sb = getNodeBoundsAbsolute(src, this.nodeById);
         const sourcePt = getHandlePoint(sb, sourcePos);
-        srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
+        const srcPt = new Avoid.Point(sourcePt.x, sourcePt.y);
+        srcEnd = new Avoid.ConnEnd(srcPt);
+        try { srcPt.delete?.(); } catch { /* ok */ }
         const tb = getNodeBoundsAbsolute(tgt, this.nodeById);
         const targetPt = getHandlePoint(tb, targetPos);
-        tgtEnd = new Avoid.ConnEnd(new Avoid.Point(targetPt.x, targetPt.y));
+        const tgtPt = new Avoid.Point(targetPt.x, targetPt.y);
+        tgtEnd = new Avoid.ConnEnd(tgtPt);
+        try { tgtPt.delete?.(); } catch { /* ok */ }
       }
       const connRef = new Avoid.ConnRef(this.router, srcEnd, tgtEnd);
       connRef.setRoutingType(Avoid.ConnType_Orthogonal);
