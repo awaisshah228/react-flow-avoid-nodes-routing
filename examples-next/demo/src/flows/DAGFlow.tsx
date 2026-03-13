@@ -34,7 +34,7 @@ export default function DAGFlow() {
   const [edges, setEdges] = useState<Edge[]>(dagEdges);
   const [settings, setSettings] = useState<AutoLayoutSettings>({
     edgeRounding: 8,
-    edgeToEdgeSpacing: 7,
+    edgeToEdgeSpacing: 5,
     edgeToNodeSpacing: 12,
     diagramGridSize: 0,
     shouldSplitEdgesNearHandle: true,
