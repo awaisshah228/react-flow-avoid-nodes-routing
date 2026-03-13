@@ -7,7 +7,9 @@
     "dev:server": "tsx watch src/server.ts",
     "dev:client": "vite",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "build": "vite build"
+    "build": "vite build",
+    "stress": "artillery run artillery.yml",
+    "stress:quick": "artillery quick --count 50 --num 10 http://localhost:3004/api/diagram?tab=basic"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.1",
@@ -28,7 +30,8 @@
     "@types/node": "^20.0.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-"@vitejs/plugin-react": "^5.1.1",
+    "@vitejs/plugin-react": "^5.1.1",
+    "artillery": "^2.0.30",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1"
