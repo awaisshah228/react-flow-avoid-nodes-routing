@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(pkill -f turbo)",
+      "Bash(pkill -f \"next-server\")",
+      "Bash(pkill -f \"node.*dev\")"
+    ]
+  }
+}

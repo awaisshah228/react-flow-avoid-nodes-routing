@@ -65,8 +65,10 @@
     nodes.set(laid);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        router.reset(laid, $edges, routerOptions);
-        fitViewTrigger++;
+        setTimeout(() => {
+          router.reset(laid, $edges, routerOptions);
+          fitViewTrigger++;
+        }, 50);
       });
     });
   }

@@ -34,7 +34,7 @@ export default function DAGFlow() {
   const [edges, setEdges] = useState<Edge[]>(dagEdges);
   const [settings, setSettings] = useState<AutoLayoutSettings>({
     edgeRounding: 8,
-    edgeToEdgeSpacing: 10,
+    edgeToEdgeSpacing: 5,
     edgeToNodeSpacing: 12,
     diagramGridSize: 0,
     shouldSplitEdgesNearHandle: true,
@@ -107,9 +107,16 @@ export default function DAGFlow() {
   );
 
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, _node: Node) => {
+    (_event: React.MouseEvent, _draggedNode: Node, draggedNodes: Node[]) => {
       if (settings.resolveCollisions) {
-        setNodes((nds) => resolveCollisions(nds, { margin: 20, maxIterations: 50 }));
+        setNodes((nds) => {
+          const posMap = new Map(draggedNodes.map(n => [n.id, n.position]));
+          const updated = nds.map(n => {
+            const pos = posMap.get(n.id);
+            return pos ? { ...n, position: pos } : n;
+          });
+          return resolveCollisions(updated, { margin: 20, maxIterations: 50 });
+        });
       }
       deferredReset();
     },

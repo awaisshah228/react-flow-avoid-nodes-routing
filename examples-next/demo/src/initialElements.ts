@@ -26,7 +26,7 @@ export const nodes: Node[] = [
   {
     id: "validate",
     data: { label: "Validate" },
-    position: { x: 50, y: 50 },
+    position: { x: 120, y: 50 },
     parentId: "group-processing",
     expandParent: true,
     style: { width: 140, height: 50 },
@@ -34,7 +34,7 @@ export const nodes: Node[] = [
   {
     id: "transform",
     data: { label: "Transform" },
-    position: { x: 50, y: 170 },
+    position: { x: 120, y: 170 },
     parentId: "group-processing",
     expandParent: true,
     style: { width: 140, height: 50 },
@@ -42,7 +42,7 @@ export const nodes: Node[] = [
   {
     id: "enrich",
     data: { label: "Enrich" },
-    position: { x: 50, y: 290 },
+    position: { x: 120, y: 290 },
     parentId: "group-processing",
     expandParent: true,
     style: { width: 140, height: 50, border: "2px solid #f472b6", borderRadius: 12 },
@@ -73,7 +73,7 @@ export const nodes: Node[] = [
   {
     id: "success",
     data: { label: "Success" },
-    position: { x: 50, y: 50 },
+    position: { x: 100, y: 50 },
     parentId: "group-output",
     expandParent: true,
     style: { width: 140, height: 50, border: "2px solid #4ade80", borderRadius: 12 },
@@ -81,7 +81,7 @@ export const nodes: Node[] = [
   {
     id: "retry",
     data: { label: "Retry" },
-    position: { x: 50, y: 190 },
+    position: { x: 100, y: 190 },
     parentId: "group-output",
     expandParent: true,
     style: { width: 140, height: 50, border: "2px solid #facc15", borderRadius: 12 },
@@ -89,7 +89,7 @@ export const nodes: Node[] = [
   {
     id: "error",
     data: { label: "Error" },
-    position: { x: 50, y: 330 },
+    position: { x: 100, y: 330 },
     parentId: "group-output",
     expandParent: true,
     style: { width: 140, height: 50, border: "2px solid #f87171", borderRadius: 12 },

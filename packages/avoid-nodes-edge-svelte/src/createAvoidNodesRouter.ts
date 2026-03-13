@@ -95,6 +95,22 @@ export function createAvoidNodesRouter(
         options?.onCollisionsResolved?.(nodes as FlowNode[]);
       },
     });
+
+    // Terminate worker on page unload (Svelte onDestroy doesn't run on refresh)
+    const onBeforeUnload = () => {
+      worker?.postMessage({ command: "close" } as AvoidRouterWorkerCommand);
+      worker?.terminate();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", onBeforeUnload);
+    }
+    const originalCleanup = cleanup;
+    cleanup = () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("beforeunload", onBeforeUnload);
+      }
+      originalCleanup?.();
+    };
   }
 
   function post(cmd: AvoidRouterWorkerCommand) {
