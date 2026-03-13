@@ -1,6 +1,6 @@
 {
   "name": "avoid-nodes-router",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Abstract edge routing engine for avoid-nodes. Transport-agnostic — works with any protocol (REST, WebSocket, SSE, etc).",
   "type": "module",
   "main": "./dist/index.js",
