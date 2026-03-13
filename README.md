@@ -40,6 +40,8 @@ Built with [React Flow v12](https://reactflow.dev/), [Svelte Flow](https://svelt
 | Next.js Basic | React (Next.js) | `examples-next/nextjs-latest-basic` |
 | Basic | Svelte | `examples-svelte/basic` |
 | Demo | Svelte | `examples-svelte/demo` |
+| Express API | Node.js (server-side) | `examples-server-side/express-api-example` |
+| Next.js Server | Next.js (server-side) | `examples-server-side/nextjs-example` |
 
 ### Complex DAG Example
 
