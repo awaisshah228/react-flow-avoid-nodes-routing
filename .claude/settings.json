@@ -5,7 +5,8 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(pkill -f turbo)",
       "Bash(pkill -f \"next-server\")",
-      "Bash(pkill -f \"node.*dev\")"
+      "Bash(pkill -f \"node.*dev\")",
+      "Bash(ls /Users/awaisshah228/Documents/coding/ai-diagram-generator/avoid-nodes-pro-example/*.md)"
     ]
   }
 }

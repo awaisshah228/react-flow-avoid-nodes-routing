@@ -4,6 +4,8 @@
 >
 > **Svelte Flow:** [`avoid-nodes-edge-svelte`](https://www.npmjs.com/package/avoid-nodes-edge-svelte)
 >
+> **Server-side Router:** [`avoid-nodes-router`](https://www.npmjs.com/package/avoid-nodes-router)
+>
 > **[React Demo](https://avoid-nodes-pro-example.vercel.app)** · **[Svelte Demo](https://svelte-demo-beta.vercel.app/)** · [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/awaisshah228)
 
 If this project saves you time, consider supporting its development:
@@ -24,6 +26,7 @@ Built with [React Flow v12](https://reactflow.dev/), [Svelte Flow](https://svelt
 | --- | --- | --- |
 | [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge) | React Flow | [![npm](https://img.shields.io/npm/v/avoid-nodes-edge)](https://www.npmjs.com/package/avoid-nodes-edge) |
 | [`avoid-nodes-edge-svelte`](https://www.npmjs.com/package/avoid-nodes-edge-svelte) | Svelte Flow | [![npm](https://img.shields.io/npm/v/avoid-nodes-edge-svelte)](https://www.npmjs.com/package/avoid-nodes-edge-svelte) |
+| [`avoid-nodes-router`](https://www.npmjs.com/package/avoid-nodes-router) | Server-side (Node.js) | [![npm](https://img.shields.io/npm/v/avoid-nodes-router)](https://www.npmjs.com/package/avoid-nodes-router) |
 
 ## Examples
 
@@ -37,6 +40,8 @@ Built with [React Flow v12](https://reactflow.dev/), [Svelte Flow](https://svelt
 | Next.js Basic | React (Next.js) | `examples-next/nextjs-latest-basic` |
 | Basic | Svelte | `examples-svelte/basic` |
 | Demo | Svelte | `examples-svelte/demo` |
+| Express API | Node.js (server-side) | `examples-server-side/express-api-example` |
+| Next.js Server | Next.js (server-side) | `examples-server-side/nextjs-example` |
 
 ### Complex DAG Example
 
