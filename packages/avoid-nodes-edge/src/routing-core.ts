@@ -607,7 +607,7 @@ export class PersistentRouter {
     const obstacleNodes = this.prevNodes.filter((n) => n.type !== "group");
     const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, this.nodeById)]));
 
-    // Clean old shapes/connectors from existing router
+    // Always create a fresh Router for full rebuilds to avoid stale internal state
     if (this.router) {
       try {
         for (const { connRef } of this.connRefList) {
@@ -616,19 +616,19 @@ export class PersistentRouter {
         for (const { ref } of this.shapeRefList) {
           (this.router as { deleteShape: (s: unknown) => void }).deleteShape(ref);
         }
+        (this.router as { delete?: () => void }).delete?.();
       } catch { /* ok */ }
-    } else {
-      this.router = new Avoid.Router(Avoid.OrthogonalRouting);
-      const r = this.router as {
-        setRoutingParameter: (p: number, v: number) => void;
-        setRoutingOption: (o: number, v: boolean) => void;
-      };
-      r.setRoutingParameter(Avoid.shapeBufferDistance, shapeBuffer);
-      r.setRoutingParameter(Avoid.idealNudgingDistance, idealNudging);
-      r.setRoutingOption(Avoid.nudgeOrthogonalSegmentsConnectedToShapes, true);
-      r.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
-      r.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
     }
+    this.router = new Avoid.Router(Avoid.OrthogonalRouting);
+    const r = this.router as {
+      setRoutingParameter: (p: number, v: number) => void;
+      setRoutingOption: (o: number, v: boolean) => void;
+    };
+    r.setRoutingParameter(Avoid.shapeBufferDistance, shapeBuffer);
+    r.setRoutingParameter(Avoid.idealNudgingDistance, idealNudging);
+    r.setRoutingOption(Avoid.nudgeOrthogonalSegmentsConnectedToShapes, true);
+    r.setRoutingOption(Avoid.nudgeSharedPathsWithCommonEndPoint, true);
+    r.setRoutingOption(Avoid.performUnifyingNudgingPreprocessingStep, true);
 
     this.shapeRefMap.clear();
     this.shapeRefList = [];
