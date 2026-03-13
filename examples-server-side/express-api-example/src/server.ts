@@ -15,6 +15,8 @@
 
 import express from "express";
 import cors from "cors";
+import { createRequire } from "node:module";
+import path from "node:path";
 import ELK from "elkjs";
 import { loadAvoidWasm, routeAll } from "avoid-nodes-router";
 import type { FlowNode, FlowEdge } from "avoid-nodes-router";
@@ -251,6 +253,98 @@ async function main() {
   const app = express();
   app.use(cors());
   app.use(express.json());
+
+  const swaggerSpec = {
+    openapi: "3.0.0",
+    info: {
+      title: "Avoid Nodes Express API",
+      version: "0.0.0",
+      description: "Server-side diagram layout and edge routing API",
+    },
+    paths: {
+      "/api/health": {
+        get: {
+          summary: "Health check",
+          responses: {
+            "200": {
+              description: "Server status",
+              content: { "application/json": { schema: { type: "object", properties: { status: { type: "string" }, uptime: { type: "number" } } } } },
+            },
+          },
+        },
+      },
+      "/api/ping": {
+        get: {
+          summary: "Ping / pong",
+          responses: {
+            "200": {
+              description: "Pong response",
+              content: { "application/json": { schema: { type: "object", properties: { pong: { type: "boolean" }, timestamp: { type: "number" } } } } },
+            },
+          },
+        },
+      },
+      "/api/tabs": {
+        get: {
+          summary: "List available diagram tabs",
+          responses: {
+            "200": {
+              description: "Array of tab names",
+              content: { "application/json": { schema: { type: "object", properties: { tabs: { type: "array", items: { type: "string" } } } } } },
+            },
+          },
+        },
+      },
+      "/api/diagram": {
+        get: {
+          summary: "Get fully laid-out and routed diagram",
+          parameters: [
+            {
+              name: "tab",
+              in: "query",
+              schema: { type: "string", default: "basic" },
+              description: "Diagram tab name",
+            },
+          ],
+          responses: {
+            "200": { description: "Diagram with nodes, edges, and routes" },
+            "400": { description: "Unknown tab name" },
+            "500": { description: "Server error" },
+          },
+        },
+      },
+    },
+  };
+
+  // Serve OpenAPI spec as JSON
+  app.get("/api-docs/swagger.json", (_req, res) => {
+    res.json(swaggerSpec);
+  });
+
+  // Serve swagger-ui-dist static assets
+  const require = createRequire(import.meta.url);
+  const swaggerUiDist = path.dirname(require.resolve("swagger-ui-dist/package.json"));
+  app.use("/api-docs/assets", express.static(swaggerUiDist));
+
+  // Serve Swagger UI HTML page
+  app.get("/api-docs", (_req, res) => {
+    res.type("html").send(`<!DOCTYPE html>
+<html><head><title>API Docs</title>
+<link rel="stylesheet" href="/api-docs/assets/swagger-ui.css" />
+</head><body>
+<div id="swagger-ui"></div>
+<script src="/api-docs/assets/swagger-ui-bundle.js"></script>
+<script>SwaggerUIBundle({ url: "/api-docs/swagger.json", dom_id: "#swagger-ui" });</script>
+</body></html>`);
+  });
+
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", uptime: process.uptime() });
+  });
+
+  app.get("/api/ping", (_req, res) => {
+    res.json({ pong: true, timestamp: Date.now() });
+  });
 
   app.get("/api/tabs", (_req, res) => {
     res.json({ tabs: Object.keys(diagrams) });
