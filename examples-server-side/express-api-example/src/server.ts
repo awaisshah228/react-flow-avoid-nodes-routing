@@ -245,9 +245,7 @@ function toFlowEdges(edges: Array<Record<string, unknown>>): FlowEdge[] {
 
 async function main() {
   console.log("Loading libavoid WASM...");
-  console.log("Loading libavoid WASM...");
   await loadAvoidWasm();
-  console.log("WASM loaded.");
   console.log("WASM loaded.");
 
   const app = express();
