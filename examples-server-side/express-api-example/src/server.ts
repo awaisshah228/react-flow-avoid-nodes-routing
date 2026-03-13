@@ -139,6 +139,24 @@ function expandGroups(nodes: FlowNode[]): FlowNode[] {
     } else {
       group.style = { width: newWidth, height: newHeight };
     }
+
+    // Horizontally center children within the group
+    let minX = Infinity;
+    let childMaxRight = 0;
+    for (const childId of children) {
+      const child = nodeMap.get(childId)!;
+      const cw = child.width ?? (child.style?.width as number) ?? 150;
+      minX = Math.min(minX, child.position.x);
+      childMaxRight = Math.max(childMaxRight, child.position.x + cw);
+    }
+    const childrenWidth = childMaxRight - minX;
+    const offsetX = (newWidth - childrenWidth) / 2 - minX;
+    if (Math.abs(offsetX) > 1) {
+      for (const childId of children) {
+        const child = nodeMap.get(childId)!;
+        child.position = { x: child.position.x + offsetX, y: child.position.y };
+      }
+    }
   }
 
   // After expanding, resolve overlaps between sibling nodes/groups
