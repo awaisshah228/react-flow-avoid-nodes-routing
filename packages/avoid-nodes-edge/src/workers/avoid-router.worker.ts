@@ -69,8 +69,6 @@ function doRoute(): Record<string, AvoidRoute> {
   const avoidEdges = currentEdges.filter((e) => e.type === "avoidNodes");
   if (avoidEdges.length === 0) return {};
   try {
-    const mode = topologyDirty ? "fullReset(topologyDirty)" : positionDirty ? "incremental(positionDirty)" : "fullReset(fallback)";
-    console.log("[worker:doRoute]", mode, "nodes:", currentNodes.length, "sample:", currentNodes.slice(0, 3).map(n => ({ id: n.id, pos: n.position })));
     if (topologyDirty) {
       topologyDirty = false;
       positionDirty = false;
@@ -131,7 +129,6 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
       rebuildIndices();
       topologyDirty = true;
       pendingNodeUpdates = [];
-      console.log("[worker:reset] received", currentNodes.length, "nodes, sample:", currentNodes.slice(0, 3).map(n => ({ id: n.id, pos: n.position })));
       debouncedRoute();
       break;
 

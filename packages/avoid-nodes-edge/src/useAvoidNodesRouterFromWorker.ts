@@ -105,7 +105,6 @@ export function useAvoidNodesRouterFromWorker(
       setRoutes({});
       return;
     }
-    console.log("[sendReset] sending reset with", nodes.length, "nodes, sample positions:", nodes.slice(0, 3).map(n => ({ id: n.id, pos: n.position })));
     post({
       command: "reset",
       nodes,
