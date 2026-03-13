@@ -89,12 +89,14 @@ export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
   );
 
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, draggedNode: Node) => {
+    (_event: React.MouseEvent, _draggedNode: Node, draggedNodes: Node[]) => {
       if (settings.resolveCollisions) {
         setNodes((nds) => {
-          const updated = nds.map(n =>
-            n.id === draggedNode.id ? { ...n, position: draggedNode.position } : n
-          );
+          const posMap = new Map(draggedNodes.map(n => [n.id, n.position]));
+          const updated = nds.map(n => {
+            const pos = posMap.get(n.id);
+            return pos ? { ...n, position: pos } : n;
+          });
           return resolveCollisions(updated, { margin: 20, maxIterations: 50 });
         });
       }
