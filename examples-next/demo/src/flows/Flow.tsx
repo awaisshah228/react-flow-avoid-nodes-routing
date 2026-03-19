@@ -122,7 +122,6 @@ export default function Flow({ tab }: { tab: "basic" | "group" | "subflows" }) {
       onNodeDragStop={onNodeDragStop}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      defaultEdgeOptions={{ type: "avoidNodes" }}
       fitView
       minZoom={0.01}
       maxZoom={100}

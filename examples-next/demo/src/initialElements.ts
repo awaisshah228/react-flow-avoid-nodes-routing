@@ -140,7 +140,7 @@ const edgeColors: Record<string, string> = {
 function e(id: string, source: string, target: string, extra?: Record<string, unknown>): Edge {
   const color = edgeColors[source] ?? "#94a3b8";
   return {
-    id, source, target, type: "avoidNodes",
+    id, source, target,
     markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color },
     data: { strokeColor: color, ...extra },
   };
