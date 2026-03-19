@@ -10,6 +10,9 @@ export type { AvoidNodesRouter, CreateAvoidNodesRouterOptions } from "./createAv
 
 export { avoidRoutesLoaded, avoidRoutes, getRouteForEdge, getRoutes } from "./store";
 
+export { getAvoidNodesEdgePath } from "./getAvoidNodesEdgePath";
+export type { AvoidNodesEdgePathParams, AvoidNodesEdgePathResult } from "./getAvoidNodesEdgePath";
+
 export { resolveCollisions, hasOverlap } from "./resolve-collisions";
 export type { ResolveCollisionsOptions } from "./resolve-collisions";
 

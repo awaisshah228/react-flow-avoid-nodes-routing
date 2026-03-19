@@ -28,3 +28,6 @@ export {
   type RoutingRequest,
   type RoutingResponse,
 } from "./handler";
+
+export { getEdgePath } from "./getEdgePath";
+export type { EdgePathData, GetEdgePathParams, EdgePathResult } from "./getEdgePath";

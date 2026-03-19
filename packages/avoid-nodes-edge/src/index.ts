@@ -12,6 +12,13 @@ export type { AvoidRoutesState, AvoidRouterActions } from "./store";
 export { useAvoidNodesPath } from "./useAvoidNodesPath";
 export type { UseAvoidNodesPathParams, Position } from "./useAvoidNodesPath";
 
+export { useAvoidNodesEdgePath } from "./useAvoidNodesEdgePath";
+export type {
+  UseAvoidNodesEdgePathParams,
+  UseAvoidNodesEdgePathResult,
+  AvoidNodesEdgeData,
+} from "./useAvoidNodesEdgePath";
+
 export { useAvoidNodesRouterFromWorker } from "./useAvoidNodesRouterFromWorker";
 export type {
   UseAvoidNodesRouterOptions,
