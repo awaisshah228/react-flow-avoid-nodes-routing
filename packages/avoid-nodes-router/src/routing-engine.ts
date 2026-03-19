@@ -493,8 +493,7 @@ export class PersistentServerRouter {
     }
 
     this.connRefs = [];
-    const avoidEdges = this.currentEdges.filter((e) => e.type === "avoidNodes");
-    for (const edge of avoidEdges) {
+    for (const edge of this.currentEdges) {
       const src = this.nodeById.get(edge.source);
       const tgt = this.nodeById.get(edge.target);
       if (!src || !tgt) continue;
@@ -550,8 +549,6 @@ export class PersistentServerRouter {
     const handleNudging = opts.handleNudgingDistance ?? idealNudging;
     const cornerRadius = opts.edgeRounding ?? 0;
     const gridSize = opts.diagramGridSize ?? 0;
-    const avoidEdges = this.currentEdges.filter((e) => e.type === "avoidNodes");
-
     const result: Record<string, AvoidRoute> = {};
     const edgePoints = new Map<string, { x: number; y: number }[]>();
 
@@ -567,7 +564,7 @@ export class PersistentServerRouter {
     }
 
     if (handleNudging !== idealNudging && edgePoints.size > 0) {
-      adjustHandleSpacing(avoidEdges, edgePoints, handleNudging, idealNudging);
+      adjustHandleSpacing(this.currentEdges, edgePoints, handleNudging, idealNudging);
     }
 
     for (const [edgeId, points] of edgePoints) {

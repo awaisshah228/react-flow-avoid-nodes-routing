@@ -6,3 +6,7 @@ dist
 .vercel
 examples-svelte/demo/vercel.json
 DEPLOY.md
+# Next.js build folders (matches in all packages)
+**/.next/
+**/out/
+**/build/

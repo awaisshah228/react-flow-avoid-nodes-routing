@@ -119,12 +119,11 @@ export function createAvoidNodesRouter(
 
   function reset(nodes: FlowNode[], edges: FlowEdge[], routerOptions?: AvoidRouterOptions) {
     if (!loaded && !worker) return;
-    const avoidEdges = edges.filter((e) => e.type === "avoidNodes");
-    if (avoidEdges.length === 0) {
+    if (edges.length === 0) {
       avoidRoutes.set({});
       return;
     }
-    post({ command: "reset", nodes, edges: avoidEdges, options: mergeDefaults(routerOptions) });
+    post({ command: "reset", nodes, edges, options: mergeDefaults(routerOptions) });
     didReset = true;
   }
 

@@ -66,21 +66,20 @@ function isNode(cell: FlowNode | FlowEdge): cell is FlowNode {
 
 function doRoute(): Record<string, AvoidRoute> {
   if (!avoidLib) return {};
-  const avoidEdges = currentEdges.filter((e) => e.type === "avoidNodes");
-  if (avoidEdges.length === 0) return {};
+  if (currentEdges.length === 0) return {};
   try {
     if (topologyDirty) {
       topologyDirty = false;
       positionDirty = false;
       pendingNodeUpdates = [];
-      return persistentRouter.reset(avoidLib, currentNodes, avoidEdges, currentOptions);
+      return persistentRouter.reset(avoidLib, currentNodes, currentEdges, currentOptions);
     } else if (positionDirty && pendingNodeUpdates.length > 0) {
       positionDirty = false;
       const updates = pendingNodeUpdates;
       pendingNodeUpdates = [];
       return persistentRouter.updateNodes(updates);
     }
-    return persistentRouter.reset(avoidLib, currentNodes, avoidEdges, currentOptions);
+    return persistentRouter.reset(avoidLib, currentNodes, currentEdges, currentOptions);
   } catch {
     return {};
   }
@@ -200,7 +199,7 @@ onmessage = async (e: MessageEvent<AvoidRouterWorkerCommand>) => {
         break;
       }
       const routeNodes = msg.nodes ?? [];
-      const routeEdges = (msg.edges ?? []).filter((ed: FlowEdge) => ed.type === "avoidNodes");
+      const routeEdges = msg.edges ?? [];
       const routeOptions = msg.options ?? currentOptions;
       if (routeEdges.length === 0) {
         postMessage({ command: "routed", routes: {} } as const);

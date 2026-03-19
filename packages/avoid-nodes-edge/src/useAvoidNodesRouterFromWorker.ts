@@ -100,15 +100,15 @@ export function useAvoidNodesRouterFromWorker(
     const hasMeasured = nodes.length === 0 || nodes.some((n) => n.measured?.width != null);
     if (!hasMeasured) return;
     nodesMeasuredRef.current = true;
-    const avoidEdges = edgesRef.current.filter((e) => e.type === "avoidNodes");
-    if (avoidEdges.length === 0) {
+    const edges = edgesRef.current;
+    if (edges.length === 0) {
       setRoutes({});
       return;
     }
     post({
       command: "reset",
       nodes,
-      edges: avoidEdges,
+      edges,
       options: optsRef.current,
     });
     didResetRef.current = true;
