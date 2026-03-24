@@ -1,5 +1,8 @@
 # Avoid Nodes Edge Routing — React Flow & Svelte Flow + libavoid-js
 
+> **⚠️ Not actively maintained.**
+> For an actively maintained, pure JS (no WASM) edge routing solution for React Flow, check out: **[avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)**
+
 > **React Flow:** [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge)
 >
 > **Svelte Flow:** [`avoid-nodes-edge-svelte`](https://www.npmjs.com/package/avoid-nodes-edge-svelte)
