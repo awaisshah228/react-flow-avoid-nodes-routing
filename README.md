@@ -19,7 +19,7 @@ The replacement — **[avoid-edge-routing](https://github.com/awaisshah228/avoid
 |---|---|
 | `avoid-nodes-edge` (React, WASM) | [`reactflow-edge-routing`](https://www.npmjs.com/package/reactflow-edge-routing) [![npm](https://img.shields.io/npm/v/reactflow-edge-routing)](https://www.npmjs.com/package/reactflow-edge-routing) |
 | `avoid-nodes-edge-svelte` (Svelte, WASM) | [`svelteflow-edge-routing`](https://www.npmjs.com/package/svelteflow-edge-routing) [![npm](https://img.shields.io/npm/v/svelteflow-edge-routing)](https://www.npmjs.com/package/svelteflow-edge-routing) |
-| `avoid-nodes-router` (Server, WASM) | [`obstacle-router`](https://www.npmjs.com/package/obstacle-router) [![npm](https://img.shields.io/npm/v/obstacle-router)](https://www.npmjs.com/package/obstacle-router) |
+| `avoid-nodes-router` (Server, WASM) | [`obstacle-router`](https://www.npmjs.com/package/obstacle-router) — pure TS, works server-side, no WASM needed [![npm](https://img.shields.io/npm/v/obstacle-router)](https://www.npmjs.com/package/obstacle-router) |
 
 ---
 
