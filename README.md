@@ -1,7 +1,13 @@
 # Avoid Nodes Edge Routing — React Flow & Svelte Flow + libavoid-js
 
-> **⚠️ Not actively maintained.**
-> For an actively maintained, pure JS (no WASM) edge routing solution for React Flow, check out: **[avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)**
+> **⚠️ Not actively maintained. This project uses WASM (libavoid-js) and only supports JavaScript.**
+> For an actively maintained, **pure JS (no WASM)** edge routing solution with **React Flow and Svelte Flow** support, check out: **[avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)**
+>
+> | Package | Framework | npm |
+> |---|---|---|
+> | [`reactflow-edge-routing`](https://www.npmjs.com/package/reactflow-edge-routing) | React Flow | [![npm](https://img.shields.io/npm/v/reactflow-edge-routing)](https://www.npmjs.com/package/reactflow-edge-routing) |
+> | [`svelteflow-edge-routing`](https://www.npmjs.com/package/svelteflow-edge-routing) | Svelte Flow | [![npm](https://img.shields.io/npm/v/svelteflow-edge-routing)](https://www.npmjs.com/package/svelteflow-edge-routing) |
+> | [`obstacle-router`](https://www.npmjs.com/package/obstacle-router) | Core engine (framework-agnostic) | [![npm](https://img.shields.io/npm/v/obstacle-router)](https://www.npmjs.com/package/obstacle-router) |
 
 > **React Flow:** [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge)
 >
