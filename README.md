@@ -1,21 +1,19 @@
-# Avoid Nodes Edge Routing (Legacy) — libavoid-js WASM
+# Avoid Nodes Edge Routing — libavoid-js WASM
 
 ---
 
-### This project is deprecated. Use [avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing) instead.
+### This package is still fully compatible and works with WASM-based routing.
 
-This repo used **WASM (libavoid-js)** for edge routing. It is **no longer maintained**.
-
-The replacement — **[avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)** — is a complete rewrite with:
+If you prefer a **pure TypeScript solution with no WASM dependency**, check out [avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing):
 - **Pure TypeScript** (no WASM, no native dependencies)
 - **React Flow** support via [`reactflow-edge-routing`](https://www.npmjs.com/package/reactflow-edge-routing)
 - **Svelte Flow** support via [`svelteflow-edge-routing`](https://www.npmjs.com/package/svelteflow-edge-routing)
 - Orthogonal, polyline, and bezier connectors
 - Web Worker routing, collision resolution, auto-layout
 
-### Migrate now:
+### Pure JS alternative (no WASM):
 
-| Old package (this repo) | New package ([avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)) |
+| This repo (WASM) | Pure JS alternative ([avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)) |
 |---|---|
 | `avoid-nodes-edge` (React, WASM) | [`reactflow-edge-routing`](https://www.npmjs.com/package/reactflow-edge-routing) [![npm](https://img.shields.io/npm/v/reactflow-edge-routing)](https://www.npmjs.com/package/reactflow-edge-routing) |
 | `avoid-nodes-edge-svelte` (Svelte, WASM) | [`svelteflow-edge-routing`](https://www.npmjs.com/package/svelteflow-edge-routing) [![npm](https://img.shields.io/npm/v/svelteflow-edge-routing)](https://www.npmjs.com/package/svelteflow-edge-routing) |
@@ -23,7 +21,7 @@ The replacement — **[avoid-edge-routing](https://github.com/awaisshah228/avoid
 
 ---
 
-## Legacy packages (this repo, not maintained)
+## Packages (this repo)
 
 | Package | Framework | npm |
 | --- | --- | --- |
@@ -41,7 +39,7 @@ If this project saves you time, consider supporting its development:
 
 ---
 
-## Legacy documentation
+## Documentation
 
 Orthogonal edge routing that avoids overlapping nodes, powered by **libavoid-js** (WASM) with **Web Worker** support for smooth, non-blocking UI.
 
