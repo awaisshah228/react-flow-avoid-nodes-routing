@@ -3,9 +3,12 @@ import type { LayoutDirection, LayoutAlgorithmName } from "./utils/auto-layout";
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
+// Sits below the top bar (46px) + the example tab bar (~46px). Keep in sync with App.tsx TOP_BAR_HEIGHT.
+const HEADER_OFFSET = 100;
+
 const getPanelStyle = (): React.CSSProperties => ({
   position: "absolute",
-  top: 52,
+  top: HEADER_OFFSET,
   right: 12,
   background: "rgba(255, 255, 255, 0.95)",
   borderRadius: 8,
@@ -14,7 +17,7 @@ const getPanelStyle = (): React.CSSProperties => ({
   zIndex: 10,
   minWidth: 240,
   maxWidth: "min(320px, calc(100vw - 24px))",
-  maxHeight: "calc(100vh - 64px)",
+  maxHeight: `calc(100vh - ${HEADER_OFFSET + 12}px)`,
   overflowY: "auto",
   fontSize: 13,
 });
