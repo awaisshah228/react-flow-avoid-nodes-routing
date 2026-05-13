@@ -2,22 +2,26 @@
 
 ---
 
-### This package is still fully compatible and works with WASM-based routing.
+> ## ℹ️ Notice — two flavors of this routing engine
+>
+> This project is maintained in **two parallel implementations**. Pick whichever fits your stack:
+>
+> | Flavor | Engine | Wiring | Repo |
+> |---|---|---|---|
+> | **WASM-powered** *(this repo)* | [libavoid-js](https://github.com/nicktf/libavoid-js) (Emscripten WASM) loaded inside a **Web Worker** — `public/libavoid.wasm` copied by a `postinstall` script, `routeAll()` runs off the main thread | `useAvoidNodesRouterFromWorker()` → Web Worker → WASM `Router` → routes posted back to a Zustand store | **[react-flow-avoid-nodes-routing](https://github.com/awaisshah228/react-flow-avoid-nodes-routing)** |
+> | **Pure TypeScript** *(no WASM)* | 100% TypeScript routing/auto-layout — **no WASM, no native deps**, no `.wasm` asset to host | drop-in React Flow / Svelte Flow edge packages, still supports Web Worker routing, collision resolution and auto-layout | **[avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)** |
+>
+> Both repos are open source and feature-compatible (orthogonal / polyline / bezier connectors, collision resolution, ELK/Dagre/D3 auto-layout, grouped & nested nodes).
 
-If you prefer a **pure TypeScript solution with no WASM dependency**, check out [avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing):
-- **Pure TypeScript** (no WASM, no native dependencies)
-- **React Flow** support via [`reactflow-edge-routing`](https://www.npmjs.com/package/reactflow-edge-routing)
-- **Svelte Flow** support via [`svelteflow-edge-routing`](https://www.npmjs.com/package/svelteflow-edge-routing)
-- Orthogonal, polyline, and bezier connectors
-- Web Worker routing, collision resolution, auto-layout
+### Package matrix — WASM vs pure-TS equivalents
 
-### Pure JS alternative (no WASM):
-
-| This repo (WASM) | Pure JS alternative ([avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)) |
+| This repo (WASM, libavoid-js) | Pure-TS equivalent ([avoid-edge-routing](https://github.com/awaisshah228/avoid-edge-routing)) |
 |---|---|
-| `avoid-nodes-edge` (React, WASM) | [`reactflow-edge-routing`](https://www.npmjs.com/package/reactflow-edge-routing) [![npm](https://img.shields.io/npm/v/reactflow-edge-routing)](https://www.npmjs.com/package/reactflow-edge-routing) |
-| `avoid-nodes-edge-svelte` (Svelte, WASM) | [`svelteflow-edge-routing`](https://www.npmjs.com/package/svelteflow-edge-routing) [![npm](https://img.shields.io/npm/v/svelteflow-edge-routing)](https://www.npmjs.com/package/svelteflow-edge-routing) |
-| `avoid-nodes-router` (Server, WASM) | — |
+| [`avoid-nodes-edge`](https://www.npmjs.com/package/avoid-nodes-edge) (React, WASM) [![npm](https://img.shields.io/npm/v/avoid-nodes-edge)](https://www.npmjs.com/package/avoid-nodes-edge) | [`reactflow-edge-routing`](https://www.npmjs.com/package/reactflow-edge-routing) (React, pure TS) [![npm](https://img.shields.io/npm/v/reactflow-edge-routing)](https://www.npmjs.com/package/reactflow-edge-routing) |
+| [`avoid-nodes-edge-svelte`](https://www.npmjs.com/package/avoid-nodes-edge-svelte) (Svelte, WASM) [![npm](https://img.shields.io/npm/v/avoid-nodes-edge-svelte)](https://www.npmjs.com/package/avoid-nodes-edge-svelte) | [`svelteflow-edge-routing`](https://www.npmjs.com/package/svelteflow-edge-routing) (Svelte, pure TS) [![npm](https://img.shields.io/npm/v/svelteflow-edge-routing)](https://www.npmjs.com/package/svelteflow-edge-routing) |
+| [`avoid-nodes-router`](https://www.npmjs.com/package/avoid-nodes-router) (Server, WASM) [![npm](https://img.shields.io/npm/v/avoid-nodes-router)](https://www.npmjs.com/package/avoid-nodes-router) | — |
+
+**Repos:** [react-flow-avoid-nodes-routing (WASM)](https://github.com/awaisshah228/react-flow-avoid-nodes-routing) · [avoid-edge-routing (pure TypeScript)](https://github.com/awaisshah228/avoid-edge-routing)
 
 ---
 
