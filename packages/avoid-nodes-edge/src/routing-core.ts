@@ -55,12 +55,19 @@ export type AvoidLibInstance = {
     yProportion: number,
     proportional: boolean,
     insideOffset: number,
-    directions: number
+    directions: number,
   ) => { setExclusive: (exclusive: boolean) => void };
   ConnEnd: new (shapeRefOrPoint: unknown, pinClassId?: number) => unknown;
-  ConnRef: new (router: unknown, src?: unknown, dst?: unknown) => {
+  ConnRef: new (
+    router: unknown,
+    src?: unknown,
+    dst?: unknown,
+  ) => {
     setRoutingType: (t: number) => void;
-    displayRoute: () => { size: () => number; get_ps: (i: number) => { x: number; y: number } };
+    displayRoute: () => {
+      size: () => number;
+      get_ps: (i: number) => { x: number; y: number };
+    };
   };
   OrthogonalRouting: number;
   ConnType_Orthogonal: number;
@@ -83,14 +90,22 @@ export const WASM_RETRY_DELAY_MS = 2000;
 export const WASM_MAX_RETRIES = 5;
 
 export async function loadWasm(
-  wasmUrl: string = LIBAVOID_WASM_URL
+  wasmUrl: string = LIBAVOID_WASM_URL,
 ): Promise<AvoidLibInstance | null> {
-  const origin = (globalThis as unknown as { location?: { origin?: string } }).location?.origin;
-  const absoluteUrl = origin && wasmUrl.startsWith("/") ? `${origin}${wasmUrl}` : wasmUrl;
+  const origin = (globalThis as unknown as { location?: { origin?: string } })
+    .location?.origin;
+  const absoluteUrl =
+    origin && wasmUrl.startsWith("/") ? `${origin}${wasmUrl}` : wasmUrl;
   try {
     const mod = (await import("libavoid-js")) as unknown as {
-      default?: { load?: (filePath?: string) => Promise<void>; getInstance?: () => AvoidLibInstance };
-      AvoidLib?: { load?: (filePath?: string) => Promise<void>; getInstance?: () => AvoidLibInstance };
+      default?: {
+        load?: (filePath?: string) => Promise<void>;
+        getInstance?: () => AvoidLibInstance;
+      };
+      AvoidLib?: {
+        load?: (filePath?: string) => Promise<void>;
+        getInstance?: () => AvoidLibInstance;
+      };
     };
     const AvoidLib = mod.AvoidLib ?? mod.default;
     if (!AvoidLib?.load) return null;
@@ -102,7 +117,7 @@ export async function loadWasm(
 }
 
 export async function loadWasmWithRetry(
-  wasmUrl: string = LIBAVOID_WASM_URL
+  wasmUrl: string = LIBAVOID_WASM_URL,
 ): Promise<AvoidLibInstance | null> {
   for (let attempt = 1; attempt <= WASM_MAX_RETRIES; attempt++) {
     const lib = await loadWasm(wasmUrl);
@@ -116,17 +131,32 @@ export async function loadWasmWithRetry(
 
 // ---- Geometry helpers ----
 
-export function getNodeBounds(node: FlowNode): { x: number; y: number; w: number; h: number } {
+export function getNodeBounds(node: FlowNode): {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} {
   const x = node.position?.x ?? 0;
   const y = node.position?.y ?? 0;
-  const w = Number((node.measured?.width ?? node.width ?? (node.style as { width?: number })?.width) ?? 150);
-  const h = Number((node.measured?.height ?? node.height ?? (node.style as { height?: number })?.height) ?? 50);
+  const w = Number(
+    node.measured?.width ??
+      node.width ??
+      (node.style as { width?: number })?.width ??
+      150,
+  );
+  const h = Number(
+    node.measured?.height ??
+      node.height ??
+      (node.style as { height?: number })?.height ??
+      50,
+  );
   return { x, y, w, h };
 }
 
 export function getNodeBoundsAbsolute(
   node: FlowNode,
-  nodeById: Map<string, FlowNode>
+  nodeById: Map<string, FlowNode>,
 ): { x: number; y: number; w: number; h: number } {
   const b = getNodeBounds(node);
   let current: FlowNode | undefined = node;
@@ -140,11 +170,16 @@ export function getNodeBoundsAbsolute(
   return b;
 }
 
-export function getHandlePosition(node: FlowNode, kind: "source" | "target"): HandlePosition {
+export function getHandlePosition(
+  node: FlowNode,
+  kind: "source" | "target",
+): HandlePosition {
   const raw =
     kind === "source"
-      ? (node.sourcePosition as string | undefined) ?? (node as { data?: { sourcePosition?: string } }).data?.sourcePosition
-      : (node.targetPosition as string | undefined) ?? (node as { data?: { targetPosition?: string } }).data?.targetPosition;
+      ? ((node.sourcePosition as string | undefined) ??
+        (node as { data?: { sourcePosition?: string } }).data?.sourcePosition)
+      : ((node.targetPosition as string | undefined) ??
+        (node as { data?: { targetPosition?: string } }).data?.targetPosition);
   const s = String(raw ?? "").toLowerCase();
   if (s === "left" || s === "right" || s === "top" || s === "bottom") return s;
   return kind === "source" ? "right" : "left";
@@ -152,28 +187,40 @@ export function getHandlePosition(node: FlowNode, kind: "source" | "target"): Ha
 
 export function getHandlePoint(
   bounds: { x: number; y: number; w: number; h: number },
-  position: HandlePosition
+  position: HandlePosition,
 ): { x: number; y: number } {
   const { x, y, w, h } = bounds;
   const cx = x + w / 2;
   const cy = y + h / 2;
   switch (position) {
-    case "left": return { x, y: cy };
-    case "right": return { x: x + w, y: cy };
-    case "top": return { x: cx, y };
-    case "bottom": return { x: cx, y: y + h };
-    default: return { x: x + w, y: cy };
+    case "left":
+      return { x, y: cy };
+    case "right":
+      return { x: x + w, y: cy };
+    case "top":
+      return { x: cx, y };
+    case "bottom":
+      return { x: cx, y: y + h };
+    default:
+      return { x: x + w, y: cy };
   }
 }
 
-export function snapToGrid(x: number, y: number, gridSize: number): { x: number; y: number } {
+export function snapToGrid(
+  x: number,
+  y: number,
+  gridSize: number,
+): { x: number; y: number } {
   if (gridSize <= 0) return { x, y };
-  return { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize };
+  return {
+    x: Math.round(x / gridSize) * gridSize,
+    y: Math.round(y / gridSize) * gridSize,
+  };
 }
 
 export function getBestSides(
   srcBounds: { x: number; y: number; w: number; h: number },
-  tgtBounds: { x: number; y: number; w: number; h: number }
+  tgtBounds: { x: number; y: number; w: number; h: number },
 ): { sourcePos: HandlePosition; targetPos: HandlePosition } {
   const srcCx = srcBounds.x + srcBounds.w / 2;
   const srcCy = srcBounds.y + srcBounds.h / 2;
@@ -198,7 +245,7 @@ export function getBestSides(
 export function polylineToPath(
   size: number,
   getPoint: (i: number) => { x: number; y: number },
-  options: { gridSize?: number; cornerRadius?: number } = {}
+  options: { gridSize?: number; cornerRadius?: number } = {},
 ): string {
   if (size < 2) return "";
   const gridSize = options.gridSize ?? 0;
@@ -234,7 +281,10 @@ export function polylineToPath(
     const rIn = Math.min(r, lenIn / 2, lenOut / 2);
     const rOut = Math.min(r, lenIn / 2, lenOut / 2);
     const endPrev = { x: curr.x + dirIn.x * rIn, y: curr.y + dirIn.y * rIn };
-    const startNext = { x: curr.x + dirOut.x * rOut, y: curr.y + dirOut.y * rOut };
+    const startNext = {
+      x: curr.x + dirOut.x * rOut,
+      y: curr.y + dirOut.y * rOut,
+    };
     d += ` L ${endPrev.x} ${endPrev.y} Q ${curr.x} ${curr.y} ${startNext.x} ${startNext.y}`;
   }
   const last = pt(size - 1);
@@ -248,7 +298,7 @@ export function adjustHandleSpacing(
   edges: FlowEdge[],
   edgePoints: Map<string, { x: number; y: number }[]>,
   handleNudging: number,
-  idealNudging: number
+  idealNudging: number,
 ): void {
   const ratio = handleNudging / idealNudging;
 
@@ -277,7 +327,7 @@ function rescaleNearHandle(
   edgeIds: string[],
   edgePoints: Map<string, { x: number; y: number }[]>,
   end: "source" | "target",
-  ratio: number
+  ratio: number,
 ): void {
   const positions: { edgeId: string; pt: { x: number; y: number } }[] = [];
   for (const edgeId of edgeIds) {
@@ -301,7 +351,8 @@ function rescaleNearHandle(
   for (const edgeId of edgeIds) {
     const pts = edgePoints.get(edgeId);
     if (!pts || pts.length < 2) continue;
-    const indices = end === "source" ? [0, 1] : [pts.length - 1, pts.length - 2];
+    const indices =
+      end === "source" ? [0, 1] : [pts.length - 1, pts.length - 2];
     for (const idx of indices) {
       const oldVal = pts[idx][axis];
       pts[idx][axis] = center + (oldVal - center) * ratio;
@@ -315,7 +366,7 @@ export function routeAllCore(
   Avoid: AvoidLibInstance,
   nodes: FlowNode[],
   edges: FlowEdge[],
-  options?: AvoidRouterOptions
+  options?: AvoidRouterOptions,
 ): Record<string, AvoidRoute> {
   const shapeBuffer = options?.shapeBufferDistance ?? 8;
   const idealNudging = options?.idealNudgingDistance ?? 10;
@@ -327,18 +378,30 @@ export function routeAllCore(
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const obstacleNodes = nodes.filter((n) => n.type !== "group");
 
-  const PIN_CENTER = 1, PIN_TOP = 2, PIN_BOTTOM = 3, PIN_LEFT = 4, PIN_RIGHT = 5;
-  const pinIdForPosition: Record<HandlePosition, number> = { top: PIN_TOP, bottom: PIN_BOTTOM, left: PIN_LEFT, right: PIN_RIGHT };
-  const pinProportions: Record<number, { x: number; y: number; dir: number }> = {
-    [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
-    [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
-    [PIN_BOTTOM]: { x: 0.5, y: 1, dir: Avoid.ConnDirDown },
-    [PIN_LEFT]: { x: 0, y: 0.5, dir: Avoid.ConnDirLeft },
-    [PIN_RIGHT]: { x: 1, y: 0.5, dir: Avoid.ConnDirRight },
+  const PIN_CENTER = 1,
+    PIN_TOP = 2,
+    PIN_BOTTOM = 3,
+    PIN_LEFT = 4,
+    PIN_RIGHT = 5;
+  const pinIdForPosition: Record<HandlePosition, number> = {
+    top: PIN_TOP,
+    bottom: PIN_BOTTOM,
+    left: PIN_LEFT,
+    right: PIN_RIGHT,
   };
+  const pinProportions: Record<number, { x: number; y: number; dir: number }> =
+    {
+      [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
+      [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
+      [PIN_BOTTOM]: { x: 0.5, y: 1, dir: Avoid.ConnDirDown },
+      [PIN_LEFT]: { x: 0, y: 0.5, dir: Avoid.ConnDirLeft },
+      [PIN_RIGHT]: { x: 1, y: 0.5, dir: Avoid.ConnDirRight },
+    };
 
   const result: Record<string, AvoidRoute> = {};
-  const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]));
+  const nodeBounds = new Map(
+    obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, nodeById)]),
+  );
 
   const router = new Avoid.Router(Avoid.OrthogonalRouting) as {
     setRoutingParameter: (p: number, v: number) => void;
@@ -363,9 +426,23 @@ export function routeAllCore(
     const shapeRef = new Avoid.ShapeRef(router, rect);
     shapeRefs.push({ ref: shapeRef });
     shapeRefMap.set(node.id, shapeRef);
-    for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
+    for (const pinId of [
+      PIN_CENTER,
+      PIN_TOP,
+      PIN_BOTTOM,
+      PIN_LEFT,
+      PIN_RIGHT,
+    ]) {
       const p = pinProportions[pinId];
-      const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
+      const pin = new Avoid.ShapeConnectionPin(
+        shapeRef,
+        pinId,
+        p.x,
+        p.y,
+        true,
+        0,
+        p.dir,
+      );
       pin.setExclusive(false);
     }
   }
@@ -390,14 +467,20 @@ export function routeAllCore(
     let tgtEnd: unknown;
     if (splitNearHandle) {
       if (srcShapeRef) {
-        srcEnd = new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER);
+        srcEnd = new Avoid.ConnEnd(
+          srcShapeRef,
+          pinIdForPosition[sourcePos] ?? PIN_CENTER,
+        );
       } else {
         const sb = getNodeBoundsAbsolute(src, nodeById);
         const sourcePt = getHandlePoint(sb, sourcePos);
         srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
       }
       if (tgtShapeRef) {
-        tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
+        tgtEnd = new Avoid.ConnEnd(
+          tgtShapeRef,
+          pinIdForPosition[targetPos] ?? PIN_CENTER,
+        );
       } else {
         const tb = getNodeBoundsAbsolute(tgt, nodeById);
         const targetPt = getHandlePoint(tb, targetPos);
@@ -426,7 +509,14 @@ export function routeAllCore(
   const edgePoints = new Map<string, { x: number; y: number }[]>();
   for (const { edgeId, connRef } of connRefs) {
     try {
-      const route = (connRef as { displayRoute(): { size(): number; get_ps(i: number): { x: number; y: number } } }).displayRoute();
+      const route = (
+        connRef as {
+          displayRoute(): {
+            size(): number;
+            get_ps(i: number): { x: number; y: number };
+          };
+        }
+      ).displayRoute();
       const size = route.size();
       if (size < 2) continue;
       const points: { x: number; y: number }[] = [];
@@ -445,7 +535,10 @@ export function routeAllCore(
   }
 
   for (const [edgeId, points] of edgePoints) {
-    const path = polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
+    const path = polylineToPath(points.length, (i) => points[i], {
+      gridSize: gridSize || undefined,
+      cornerRadius,
+    });
     const mid = Math.floor(points.length / 2);
     const midP = points[mid];
     const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
@@ -458,9 +551,13 @@ export function routeAllCore(
 }
 
 function cleanup(
-  router: { deleteConnector: (c: unknown) => void; deleteShape: (s: unknown) => void; delete?: () => void },
+  router: {
+    deleteConnector: (c: unknown) => void;
+    deleteShape: (s: unknown) => void;
+    delete?: () => void;
+  },
   connRefs: { connRef: unknown }[],
-  shapeRefs: { ref: unknown }[]
+  shapeRefs: { ref: unknown }[],
 ): void {
   try {
     for (const { connRef } of connRefs) router.deleteConnector(connRef);
@@ -499,7 +596,7 @@ export class PersistentRouter {
     Avoid: AvoidLibInstance,
     nodes: FlowNode[],
     edges: FlowEdge[],
-    options?: AvoidRouterOptions
+    options?: AvoidRouterOptions,
   ): Record<string, AvoidRoute> {
     this.Avoid = Avoid;
     this.prevNodes = nodes;
@@ -525,18 +622,28 @@ export class PersistentRouter {
       this.upsertNode(updated);
       const shapeRef = this.shapeRefMap.get(updated.id);
       if (shapeRef && updated.position) {
-        const b = getNodeBoundsAbsolute(this.nodeById.get(updated.id)!, this.nodeById);
+        const b = getNodeBoundsAbsolute(
+          this.nodeById.get(updated.id)!,
+          this.nodeById,
+        );
         const topLeft = new Avoid.Point(b.x, b.y);
         const bottomRight = new Avoid.Point(b.x + b.w, b.y + b.h);
         const newPoly = new Avoid.Rectangle(topLeft, bottomRight);
-        (this.router as { moveShape: (s: unknown, p: unknown) => void }).moveShape(shapeRef, newPoly);
+        (
+          this.router as { moveShape: (s: unknown, p: unknown) => void }
+        ).moveShape(shapeRef, newPoly);
       }
     }
 
     try {
       (this.router as { processTransaction: () => void }).processTransaction();
     } catch {
-      return this.reset(Avoid, this.prevNodes, this.prevEdges, this.prevOptions);
+      return this.reset(
+        Avoid,
+        this.prevNodes,
+        this.prevEdges,
+        this.prevOptions,
+      );
     }
 
     return this.readRoutes();
@@ -545,9 +652,13 @@ export class PersistentRouter {
   destroy(): void {
     if (this.router) {
       cleanup(
-        this.router as { deleteConnector: (c: unknown) => void; deleteShape: (s: unknown) => void; delete?: () => void },
+        this.router as {
+          deleteConnector: (c: unknown) => void;
+          deleteShape: (s: unknown) => void;
+          delete?: () => void;
+        },
         this.connRefList,
-        this.shapeRefList
+        this.shapeRefList,
       );
       this.router = null;
     }
@@ -579,9 +690,21 @@ export class PersistentRouter {
     const splitNearHandle = opts.shouldSplitEdgesNearHandle ?? false;
     const autoBestSide = opts.autoBestSideConnection ?? false;
 
-    const PIN_CENTER = 1, PIN_TOP = 2, PIN_BOTTOM = 3, PIN_LEFT = 4, PIN_RIGHT = 5;
-    const pinIdForPosition: Record<HandlePosition, number> = { top: PIN_TOP, bottom: PIN_BOTTOM, left: PIN_LEFT, right: PIN_RIGHT };
-    const pinProportions: Record<number, { x: number; y: number; dir: number }> = {
+    const PIN_CENTER = 1,
+      PIN_TOP = 2,
+      PIN_BOTTOM = 3,
+      PIN_LEFT = 4,
+      PIN_RIGHT = 5;
+    const pinIdForPosition: Record<HandlePosition, number> = {
+      top: PIN_TOP,
+      bottom: PIN_BOTTOM,
+      left: PIN_LEFT,
+      right: PIN_RIGHT,
+    };
+    const pinProportions: Record<
+      number,
+      { x: number; y: number; dir: number }
+    > = {
       [PIN_CENTER]: { x: 0.5, y: 0.5, dir: Avoid.ConnDirAll },
       [PIN_TOP]: { x: 0.5, y: 0, dir: Avoid.ConnDirUp },
       [PIN_BOTTOM]: { x: 0.5, y: 1, dir: Avoid.ConnDirDown },
@@ -590,19 +713,27 @@ export class PersistentRouter {
     };
 
     const obstacleNodes = this.prevNodes.filter((n) => n.type !== "group");
-    const nodeBounds = new Map(obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, this.nodeById)]));
+    const nodeBounds = new Map(
+      obstacleNodes.map((n) => [n.id, getNodeBoundsAbsolute(n, this.nodeById)]),
+    );
 
     // Always create a fresh Router for full rebuilds to avoid stale internal state
     if (this.router) {
       try {
         for (const { connRef } of this.connRefList) {
-          (this.router as { deleteConnector: (c: unknown) => void }).deleteConnector(connRef);
+          (
+            this.router as { deleteConnector: (c: unknown) => void }
+          ).deleteConnector(connRef);
         }
         for (const { ref } of this.shapeRefList) {
-          (this.router as { deleteShape: (s: unknown) => void }).deleteShape(ref);
+          (this.router as { deleteShape: (s: unknown) => void }).deleteShape(
+            ref,
+          );
         }
         (this.router as { delete?: () => void }).delete?.();
-      } catch { /* ok */ }
+      } catch {
+        /* ok */
+      }
     }
     this.router = new Avoid.Router(Avoid.OrthogonalRouting);
     const r = this.router as {
@@ -625,9 +756,23 @@ export class PersistentRouter {
       const shapeRef = new Avoid.ShapeRef(this.router, rect);
       this.shapeRefList.push({ ref: shapeRef });
       this.shapeRefMap.set(node.id, shapeRef);
-      for (const pinId of [PIN_CENTER, PIN_TOP, PIN_BOTTOM, PIN_LEFT, PIN_RIGHT]) {
+      for (const pinId of [
+        PIN_CENTER,
+        PIN_TOP,
+        PIN_BOTTOM,
+        PIN_LEFT,
+        PIN_RIGHT,
+      ]) {
         const p = pinProportions[pinId];
-        const pin = new Avoid.ShapeConnectionPin(shapeRef, pinId, p.x, p.y, true, 0, p.dir);
+        const pin = new Avoid.ShapeConnectionPin(
+          shapeRef,
+          pinId,
+          p.x,
+          p.y,
+          true,
+          0,
+          p.dir,
+        );
         pin.setExclusive(false);
       }
     }
@@ -652,14 +797,20 @@ export class PersistentRouter {
       let tgtEnd: unknown;
       if (splitNearHandle) {
         if (srcShapeRef) {
-          srcEnd = new Avoid.ConnEnd(srcShapeRef, pinIdForPosition[sourcePos] ?? PIN_CENTER);
+          srcEnd = new Avoid.ConnEnd(
+            srcShapeRef,
+            pinIdForPosition[sourcePos] ?? PIN_CENTER,
+          );
         } else {
           const sb = getNodeBoundsAbsolute(src, this.nodeById);
           const sourcePt = getHandlePoint(sb, sourcePos);
           srcEnd = new Avoid.ConnEnd(new Avoid.Point(sourcePt.x, sourcePt.y));
         }
         if (tgtShapeRef) {
-          tgtEnd = new Avoid.ConnEnd(tgtShapeRef, pinIdForPosition[targetPos] ?? PIN_CENTER);
+          tgtEnd = new Avoid.ConnEnd(
+            tgtShapeRef,
+            pinIdForPosition[targetPos] ?? PIN_CENTER,
+          );
         } else {
           const tb = getNodeBoundsAbsolute(tgt, this.nodeById);
           const targetPt = getHandlePoint(tb, targetPos);
@@ -699,23 +850,72 @@ export class PersistentRouter {
 
     for (const { edgeId, connRef } of this.connRefList) {
       try {
-        const route = (connRef as { displayRoute(): { size(): number; get_ps(i: number): { x: number; y: number } } }).displayRoute();
+        const route = (
+          connRef as {
+            displayRoute(): {
+              size(): number;
+              get_ps(i: number): { x: number; y: number };
+            };
+          }
+        ).displayRoute();
         const size = route.size();
         if (size < 2) continue;
         const points: { x: number; y: number }[] = [];
-        for (let i = 0; i < size; i++) { const p = route.get_ps(i); points.push({ x: p.x, y: p.y }); }
+        for (let i = 0; i < size; i++) {
+          const p = route.get_ps(i);
+          points.push({ x: p.x, y: p.y });
+        }
         edgePoints.set(edgeId, points);
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
 
     if (handleNudging !== idealNudging && edgePoints.size > 0) {
-      adjustHandleSpacing(this.prevEdges, edgePoints, handleNudging, idealNudging);
+      adjustHandleSpacing(
+        this.prevEdges,
+        edgePoints,
+        handleNudging,
+        idealNudging,
+      );
     }
 
     for (const [edgeId, points] of edgePoints) {
-      const path = polylineToPath(points.length, (i) => points[i], { gridSize: gridSize || undefined, cornerRadius });
-      const mid = Math.floor(points.length / 2);
-      const midP = points[mid];
+      const path = polylineToPath(points.length, (i) => points[i], {
+        gridSize: gridSize || undefined,
+        cornerRadius,
+      });
+
+      // ── FIXED: Calculate True Geometric Midpoint ──
+      let totalLength = 0;
+      for (let i = 0; i < points.length - 1; i++) {
+        totalLength += Math.hypot(
+          points[i + 1].x - points[i].x,
+          points[i + 1].y - points[i].y,
+        );
+      }
+
+      const halfLength = totalLength / 2;
+      let currentLength = 0;
+      let midP = points[0]; // fallback
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const segmentLength = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+        if (currentLength + segmentLength >= halfLength) {
+          const remaining = halfLength - currentLength;
+          const ratio = segmentLength > 0 ? remaining / segmentLength : 0;
+          midP = {
+            x: p1.x + (p2.x - p1.x) * ratio,
+            y: p1.y + (p2.y - p1.y) * ratio,
+          };
+          break;
+        }
+        currentLength += segmentLength;
+      }
+
       const labelP = gridSize > 0 ? snapToGrid(midP.x, midP.y, gridSize) : midP;
       result[edgeId] = { path, labelX: labelP.x, labelY: labelP.y };
     }
