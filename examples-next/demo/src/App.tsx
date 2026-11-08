@@ -78,6 +78,7 @@ function TabButton({
 
 const GITHUB_URL = "https://github.com/awaisshah228";
 const LINKEDIN_URL = "https://www.linkedin.com/in/awaisshah228";
+const PORTFOLIO_URL = "https://awais.calcstack.co/";
 // Both source repositories for this project.
 const REPO_AVOID_NODES_URL = "https://github.com/awaisshah228/react-flow-avoid-nodes-routing";
 const REPO_AVOID_EDGE_URL = "https://github.com/awaisshah228/avoid-edge-routing";
@@ -114,6 +115,9 @@ function TopBar() {
         <span style={{ fontSize: 10.5, fontWeight: 700, color: "#7ee787", border: "1px solid rgba(126,231,135,0.4)", background: "rgba(126,231,135,0.12)", borderRadius: 999, padding: "2px 8px", textTransform: "uppercase", letterSpacing: 0.5 }}>Open Source</span>
       </span>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginLeft: "auto", flexShrink: 0 }}>
+        <a href={PORTFOLIO_URL} target="_blank" rel="noopener noreferrer" style={headerLinkStyle}>
+          Awais Shah’s Portfolio
+        </a>
         <a href={REPO_AVOID_NODES_URL} target="_blank" rel="noopener noreferrer" style={headerLinkStyle} title="react-flow-avoid-nodes-routing — WASM (libavoid-js) on GitHub">
           <GitHubMark /> avoid-nodes-edge
         </a>
